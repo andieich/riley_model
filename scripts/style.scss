@@ -1,0 +1,163 @@
+/*-- scss:defaults --*/
+
+$code-color: #4857AA;
+
+/*-- scss:rules --*/
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;700&display=swap');
+
+body {
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.reveal .callout {
+    margin-top: 0px !important;  /* Remove extra top space */
+}
+
+.menu {
+       background: lightgray; 
+       padding: 5px 10px; 
+       border-radius: 8px; 
+       display: inline-block;
+       border-style: solid;
+       border-width: 1px;
+}
+   
+.callout-tip .callout-code {
+    font-size: 1em !important;  /* Adjust this value as needed */
+    font-family: monospace;
+    color: #4857AA;
+}
+
+.reveal .callout {
+    font-size: 1em !important;
+}
+
+.reveal pre.sourceCode code {
+  /* height: 500px; */
+  max-height: 1000px;
+}
+
+.reveal pre code {
+  /* height: 500px; */
+  max-height: 1000px;
+}
+
+
+
+
+.overlay-box {
+  position: absolute;
+  top: 50%; /* Adjust vertical position */
+  left: 50%; /* Adjust horizontal position */
+  transform: translate(-50%, -50%); /* Center the box */
+  background: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+  width: 60%;
+  text-align: center;
+  font-size: 2em;
+  display: none; /* Initially hidden */
+}
+
+.small-space {
+  height: 10px; /* Adjust this for smaller spacing */
+}
+
+.med-space {
+  height: 25px; /* Adjust this for smaller spacing */
+}
+
+.justify {
+  text-align: justify !important
+}
+
+
+
+/* Reveal.js incremental animation */
+.reveal .overlay-box.fragment {
+  display: block !important; /* Show when triggered */
+}
+
+
+.smaller { font-size: smaller; }
+.medium { font-size: 80% !important; }
+.large { font-size: 150% !important; }
+.larger { font-size: 250% !important; }
+.largest { font-size: 500% !important; }
+
+.blue-box {
+    background-color: #0D0887;
+    padding: 10px;
+    border-radius: 5px;
+    color: white;
+    display: block;         /* Change from inline-block to block */
+    width: fit-content;     /* Make width adapt to text */
+    margin: auto;           /* Center the box horizontally */
+    font-size: 150%;
+    text-align: center;     /* Center the text inside */
+}
+
+.blue-box-left {
+    background-color: lightblue;
+    padding: 10px;
+    border-radius: 5px;
+    color: black;
+    display: block;         /* Change from inline-block to block */
+    width: fit-content;     /* Make width adapt to text */
+    font-size: 120%;
+}
+
+
+.reveal h2 {
+    text-align: left;  
+    font-weight: bold;  /* Make it bold */
+    text-transform: uppercase; /* Uppercase titles */
+}
+
+.reveal h2::after {
+    content: "";  /* Creates the line */
+    display: block;
+    width: 97%;  /* Adjust line width */
+    height: 3px;  /* Line thickness */
+    background-color: grey;  /* Line color */
+    margin: 10px auto 0 auto;  /* Centers the line */
+}
+
+.reveal {
+    background: linear-gradient(to bottom, #fafafa, white);
+}
+// Define color variables
+$slides-bg: #e3f2fd;   // Light blue
+$tasks-bg: #fff3cd;    // Light yellow
+$project-bg: #d4edda;  // Light green
+
+// General grid styling
+.grid {
+  gap: 20px;
+  padding: 20px;
+}
+
+// Styling for sections
+.slides-section {
+  background-color: $slides-bg;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.tasks-section {
+  background-color: $tasks-bg;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.project-section {
+  background-color: $project-bg;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.solution-link {
+  display: none;  // Hide the solution link
+}
