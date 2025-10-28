@@ -1,0 +1,257 @@
+---
+title: "Untitled"
+format: html
+---
+
+
+## Forcing
+
+The forcing data needs to be interpolated between the observed data. Using `approx()` can lead to prblems, because i) linear interpolation is not suitable for all cases and ii) values requested for before the first or after the last lead to `NA` values (and stop the `ode()` function) or are assumed to be the same as the first or the last data point. This leads to "zagged"
+
+Cubic splines or not?
+
+```{r}
+#| include: false
+
+# load forcing data
+dat_forc <- read_csv(here("data", "forcing_dat.csv"))
+
+# to improe fitting, add values from day 0 as day 365
+dat_forc <- dat_forc %>%
+  # for some reason, forcing data is 0 base, i.e. 1.1. corresponds to day 0
+  mutate(days = days + 1) # %>%
+#  bind_rows(c("days" = 365, dat_forc[1, 2:7]))
+
+gam_list <- list()
+vars <- c("I_0", "k", "L_N", "z_mix", "Temp", "zoo_bm")
+
+for (v in vars) {
+  form <- bquote(.(as.name(v)) ~ s(days, k = .(nrow(dat_forc)), bs = "cc"))
+  gam_list[[v]] <- gam(
+    formula = form,
+    data = dat_forc,
+    family = Gamma(link = "log"),
+    method = "REML",
+    knots = list(days = c(0.5, 365.5))
+  )
+}
+```
+
+```{r}
+#| include: false
+plot_forcings_gam <- function(gam_list, dat_forc, days = 1:365) {
+  plots <- lapply(names(gam_list), function(v) {
+    # Predict smooth values for all days
+    pred_df <- data.frame(
+      days = days,
+      value = predict(gam_list[[v]], newdata = data.frame(days = days))
+    )
+
+    # Build plot for this variable
+    ggplot(pred_df, aes(x = days, y = exp(value))) +
+      geom_line(color = "red", linewidth = 1) +
+      geom_point(
+        data = dat_forc,
+        aes(x = days, y = .data[[v]]),
+        color = "black"
+      ) +
+      theme_light(base_size = 12) +
+      labs(
+        title = v,
+        y = v,
+        x = "Day of year"
+      )
+  })
+
+  # name plots
+  names(plots) <- names(gam_list)
+
+  return(wrap_plots(plots))
+}
+
+plot_forcings_gam(gam_list, dat_forc)
+```
+
+## Forcing with code
+
+Playing around with `approx()` for the forcing data, linear approximation does not seem a good choice for such circular data. Instead, GAMs with circular cubic splines will be used.
+
+Define GAMs for each of the forcing variables
+
+
+
+Set up parameters as in Riley 1946
+
+## Paraneters
+
+```{r}
+#| include: false
+parameters <- c(
+  # parameters
+  p = 2.5, # gC(gC)^-1 d^-1
+  I_min = 0.0015, # g cal cm^-2 min^-1
+  r = 0.069, # °C^-1 OR 0.69???
+  R_0 = 0.0175, # day^-1
+  g = 0.0075, # day^-1
+  # forcing GAMs
+  gam_list = gam_list
+)
+```
+
+Define initial state and time axis
+
+> Remark that initial condition is set to the value 15 days before the actual start of the model. Therefore, the start day is -15 days. This should work with GAMs, but not with `approx()`. Alternatively, the conditions at t = 0 days could be caluclated by running the model for 15 days.
+
+```{r}
+state <- c(Phyto_bm = 3.377) # initial condition
+times <- seq(-15, 365, 1) # time axis
+```
+
+Define equations
+
+```{r}
+#| include: false
+m_riley <- function(time, state, parameters) {
+  with(as.list(c(state, parameters)), {
+    I_0_t <- predict(gam_list.I_0, newdata = data.frame(days = time)) %>% exp()
+    k_t <- predict(gam_list.k, newdata = data.frame(days = time)) %>% exp()
+    L_N_t <- predict(gam_list.L_N, newdata = data.frame(days = time)) %>% exp()
+    z_mix_t <- predict(gam_list.z_mix, newdata = data.frame(days = time)) %>%
+      exp()
+    Temp_t <- predict(gam_list.Temp, newdata = data.frame(days = time)) %>%
+      exp()
+    zoo_bm_t <- predict(gam_list.zoo_bm, newdata = data.frame(days = time)) %>%
+      exp()
+
+    # Euphotic depth
+    z_euph <- log(I_0_t / I_min) / k_t
+
+    # Light limitation
+    L_V <- if (z_euph < z_mix_t) z_euph / z_mix_t else 1
+
+    photos <- (p * I_0_t) /
+      (k_t * z_euph) *
+      (1 - exp(-k_t * z_euph)) *
+      L_N_t *
+      L_V
+
+    resp <- R_0 * exp(r * Temp_t)
+    graz <- g * zoo_bm_t
+
+    dPhyto_bm <- (photos - resp - graz) * Phyto_bm
+
+    list(
+      dPhyto_bm,
+      photos = photos,
+      resp = resp,
+      graz = graz,
+      temp = Temp_t
+    )
+  })
+}
+```
+
+Run the model
+
+```{r}
+#| include: false
+solution <- ode(
+  y = state,
+  times = times,
+  func = m_riley,
+  parms = parameters
+)
+```
+
+Plot Phytoplankton biomass
+
+```{r}
+#| include: false
+plot_phytop <- solution %>%
+  as_tibble() %>%
+  filter(time > 0) %>%
+  ggplot(aes(x = time)) +
+  geom_area(aes(y = Phyto_bm), fill = "lightblue") +
+  labs(x = "Days", y = expression("Phytoplankton biomass (gC " * m^-2 * ")")) +
+  theme_light()
+
+plot_phytop
+```
+
+Plot rates
+
+> For some reason, `.1` is added to the variable names when using `ode()`. It seems to be related to passing the forcing variables as a list of GAMs and not as continuous vectors.
+
+```{r}
+#| include: false
+solution %>%
+  as_tibble() %>%
+  filter(time > 0) %>%
+  select(time, photos.1:graz.1) %>%
+  # calculate rates
+  mutate(
+    Photosynthesis = photos.1,
+    Respiration = Photosynthesis - resp.1,
+    Grazing = Respiration - graz.1
+  ) %>%
+  # make a long df
+  pivot_longer(
+    cols = Photosynthesis:Grazing,
+    names_to = "rate_type",
+    values_to = "rate"
+  ) %>%
+  # adapt factor ordering for overlapping plotting
+  mutate(
+    rate_type = fct_relevel(
+      rate_type,
+      c("Photosynthesis", "Respiration", "Grazing")
+    )
+  ) %>%
+  ggplot(aes(x = time, y = rate)) +
+  geom_area(aes(fill = rate_type), position = "identity") +
+  labs(
+    x = "Days",
+    y = expression("Carbon production (gC " * m^-2 ~ day^-1 * ")")
+  ) +
+  theme_light() +
+  coord_polar()
+```
+
+> When playing around using circular coords, the rates and biomass at 365 days is not the same as at 0 days. Probably due to starting conditions?
+
+```{r}
+#| include: false
+data.frame(
+  days = 1:365,
+  I_0 = predict(gam_list$I_0, newdata = data.frame(days = 1:365))
+) %>%
+  ggplot(aes(x = days, y = I_0)) +
+  geom_line() +
+  geom_point(data = dat_forc, aes(y = I_0)) +
+  theme_light()
+```
+
+```{r}
+#| include: false
+#| eval: false
+data.frame(
+  days = 1:365,
+  Temp = predict(gam_list$Temp, newdata = data.frame(days = 1:365))
+) %>%
+  ggplot(aes(x = days, y = Temp)) +
+  geom_line() +
+  geom_point(data = dat_forc, aes(y = Temp)) +
+  theme_light()
+```
+
+```{r}
+#| include: false
+data.frame(
+  days = 1:365,
+  k = predict(gam_list$k, newdata = data.frame(days = 1:365))
+) %>%
+  ggplot(aes(x = days, y = k)) +
+  geom_line() +
+  geom_point(data = dat_forc, aes(y = k)) +
+  theme_light()
+```
