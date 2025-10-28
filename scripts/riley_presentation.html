@@ -180,17 +180,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>    dPhyto_bm <span class="ot">&lt;-</span> (photos <span class="sc">-</span> resp <span class="sc">-</span> graz) <span class="sc">*</span> Phyto_bm</span>
 <span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    PP_specific <span class="ot">&lt;-</span> photos <span class="co"># d^-1</span></span>
-<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    PP_areal <span class="ot">&lt;-</span> photos <span class="sc">*</span> Phyto_bm <span class="co"># g C m^-2 d^-1</span></span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>      dPhyto_bm,</span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>      <span class="at">photos =</span> photos,</span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>      <span class="at">resp =</span> resp,</span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>      <span class="at">graz =</span> graz</span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>  })</span>
-<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>      dPhyto_bm,</span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>      <span class="at">photos =</span> photos,</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>      <span class="at">resp =</span> resp,</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>      <span class="at">graz =</span> graz</span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Define initial conditions</p>
 <div class="cell">
@@ -212,9 +209,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">parms =</span> parameters</span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</section>
-<section id="results" class="level2">
-<h2 class="anchored" data-anchor-id="results">Results</h2>
 <p>Plot the integrated data</p>
 <div class="columns">
 <div class="column" style="width:50%;">
@@ -263,8 +257,124 @@ Figure&nbsp;2: Modelled production rates
 </div>
 </div>
 </div>
-<p>As seen in <a href="#fig-rates_m1" class="quarto-xref">Figure&nbsp;2</a>, some predictions are quite “jaggy”. This is probably due to the linear approximations used for the forcing varaibles.</p>
-<p>As an alternative, use “cyclic” GAMs. Cyclic means here, that the end of the data is “conncted” to the start.</p>
+</section>
+<section id="alternative-approximation" class="level2">
+<h2 class="anchored" data-anchor-id="alternative-approximation">Alternative approximation</h2>
+<p>As seen in <a href="#fig-rates_m1" class="quarto-xref">Figure&nbsp;2</a>, some predictions are quite ‘jaggy’. This is probably due to the linear approximations used for the forcing varaibles. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.</p>
+<p>As an alternative, use “cyclic” GAMs. Cyclic means here, that the end of the data is ‘conncted’ to the start.</p>
+<p>Although GAMs are fitted only once outside of the model function, the prediction step takes much more time than <code>approx()</code>.</p>
+<p>Fit a GAM for each parameter:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>gam_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>vars <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"I_0"</span>, <span class="st">"k"</span>, <span class="st">"L_N"</span>, <span class="st">"z_mix"</span>, <span class="st">"temp"</span>, <span class="st">"zoo_bm"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (v <span class="cf">in</span> vars) {</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  form <span class="ot">&lt;-</span> <span class="fu">bquote</span>(.(<span class="fu">as.name</span>(v)) <span class="sc">~</span> <span class="fu">s</span>(days, <span class="at">k =</span> .(<span class="fu">nrow</span>(dat_forc)), <span class="at">bs =</span> <span class="st">"cc"</span>))</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  gam_list[[v]] <span class="ot">&lt;-</span> <span class="fu">gam</span>(</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">formula =</span> form,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat_forc,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">Gamma</span>(<span class="at">link =</span> <span class="st">"log"</span>),</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"REML"</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">knots =</span> <span class="fu">list</span>(<span class="at">days =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">365.5</span>))</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Use these GAMs in <code>parameters</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>parameters_g <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># parameters</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">p =</span> <span class="fl">2.5</span>, <span class="co"># gC(gC)^-1 d^-1</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">I_min =</span> <span class="fl">0.0015</span>, <span class="co"># g cal cm^-2 min^-1</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">r =</span> <span class="fl">0.069</span>, <span class="co"># °C^-1 OR 0.69???</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">R_0 =</span> <span class="fl">0.0175</span>, <span class="co"># day^-1</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">g =</span> <span class="fl">0.0075</span>, <span class="co"># day^-1</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># forcing GAMs</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">forcing_gams =</span> gam_list</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Update model code</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>m_riley_g <span class="ot">&lt;-</span> <span class="cf">function</span>(time, state, parameters) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">with</span>(<span class="fu">as.list</span>(<span class="fu">c</span>(state, parameters)), {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># helper function to predict data with GAMs</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    get_predict <span class="ot">&lt;-</span> <span class="cf">function</span>(parameter) {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">predict</span>(forcing_gams[[parameter]], <span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">days =</span> time)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># log link was used, predictions on log scale</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">exp</span>()</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    I_0_t <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="fu">get_predict</span>(<span class="st">"I_0"</span>), I_min <span class="sc">*</span> <span class="fl">1.0001</span>) <span class="co">#  avoid I_0 &lt; I_min which would lead to division by 0 (z_eup =&gt; 0, used in photos equation)</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    k_t <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="fu">get_predict</span>(<span class="st">"k"</span>), <span class="fl">1e-6</span>) <span class="co"># avoid possibel 0 division in z_euph formula</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    L_N_t <span class="ot">&lt;-</span> <span class="fu">get_predict</span>(<span class="st">"L_N"</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    z_mix_t <span class="ot">&lt;-</span> <span class="fu">get_predict</span>(<span class="st">"z_mix"</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    temp_t <span class="ot">&lt;-</span> <span class="fu">get_predict</span>(<span class="st">"temp"</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    zoo_bm_t <span class="ot">&lt;-</span> <span class="fu">get_predict</span>(<span class="st">"zoo_bm"</span>)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Euphotic depth</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    z_euph <span class="ot">&lt;-</span> <span class="fu">log</span>(I_0_t <span class="sc">/</span> I_min) <span class="sc">/</span> k_t</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Light limitation</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    L_V <span class="ot">&lt;-</span> <span class="cf">if</span> (z_euph <span class="sc">&lt;</span> z_mix_t) z_euph <span class="sc">/</span> z_mix_t <span class="cf">else</span> <span class="dv">1</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    photos <span class="ot">&lt;-</span> (p <span class="sc">*</span> I_0_t) <span class="sc">/</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>      (k_t <span class="sc">*</span> z_euph) <span class="sc">*</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>      (<span class="dv">1</span> <span class="sc">-</span> <span class="fu">exp</span>(<span class="sc">-</span>k_t <span class="sc">*</span> z_euph)) <span class="sc">*</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>      L_N_t <span class="sc">*</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>      L_V</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    resp <span class="ot">&lt;-</span> R_0 <span class="sc">*</span> <span class="fu">exp</span>(r <span class="sc">*</span> temp_t)</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    graz <span class="ot">&lt;-</span> g <span class="sc">*</span> zoo_bm_t</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    dPhyto_bm <span class="ot">&lt;-</span> (photos <span class="sc">-</span> resp <span class="sc">-</span> graz) <span class="sc">*</span> Phyto_bm</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>      dPhyto_bm,</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">photos =</span> photos,</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">resp =</span> resp,</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>      <span class="at">graz =</span> graz</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, solve as before</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>solution_g <span class="ot">&lt;-</span> <span class="fu">ode</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> state,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">times =</span> times,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">func =</span> m_riley_g,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">parms =</span> parameters_g</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Plot pyhtoplankton biomass for both methods</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-phyto_comparison" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-phyto_comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="riley_presentation_files/figure-html/fig-phyto_comparison-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-phyto_comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Modelled phytoplankton biomass with approx() and GAMS
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Plot the rates next to each other</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-rates_g" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-rates_g-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="riley_presentation_files/figure-html/fig-rates_g-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-rates_g-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Compare modelled production rates
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
 </section>
 
 </main>
