@@ -258,8 +258,8 @@ Figure&nbsp;2: Modelled production rates
 </div>
 </div>
 </section>
-<section id="alternative-approximation" class="level2">
-<h2 class="anchored" data-anchor-id="alternative-approximation">Alternative approximation</h2>
+<section id="alternative-interpolation" class="level2">
+<h2 class="anchored" data-anchor-id="alternative-interpolation">Alternative Interpolation</h2>
 <p>As seen in <a href="#fig-rates_m1" class="quarto-xref">Figure&nbsp;2</a>, some predictions are quite ‘jaggy’. This is probably due to the linear approximations used for the forcing varaibles. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.</p>
 <p>As an alternative, use “cyclic” GAMs. Cyclic means here, that the end of the data is ‘conncted’ to the start.</p>
 <p>Although GAMs are fitted only once outside of the model function, the prediction step takes much more time than <code>approx()</code>.</p>
@@ -354,7 +354,7 @@ Figure&nbsp;2: Modelled production rates
 <img src="riley_presentation_files/figure-html/fig-phyto_comparison-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-phyto_comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Modelled phytoplankton biomass with approx() and GAMS
+Figure&nbsp;3: Modelled phytoplankton biomass with <code>approx()</code> and GAMS
 </figcaption>
 </figure>
 </div>

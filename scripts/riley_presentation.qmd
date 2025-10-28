@@ -231,7 +231,7 @@ plot_rates
 ```
 
 
-## Alternative approximation
+## Alternative Interpolation
 
 As seen in @fig-rates_m1, some predictions are quite 'jaggy'. This is probably due to the linear approximations used for the forcing varaibles. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.
 
@@ -339,7 +339,7 @@ Plot pyhtoplankton biomass for both methods
 #| message: false
 #| echo: false
 #| label: fig-phyto_comparison
-#| fig-cap: "Modelled phytoplankton biomass with approx() and GAMS"
+#| fig-cap: "Modelled phytoplankton biomass with `approx()` and GAMS"
 
 solution %>%
   as.data.frame() %>%
