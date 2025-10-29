@@ -1,10 +1,14 @@
 ---
 title: "Riley 1946"
+author: Andreas Eich
+date: 2025-10-28
 execute:
   freeze: auto
 format:
   html:
       theme: flatly
+      table-of-contents: true
+      toc-location: left-body
 ---
 
 ## Setup
@@ -14,17 +18,21 @@ Load packages
 ```{r}
 #| warning: false
 #| message: false
+#| code-fold: true
 
 library(here)
 library(deSolve)
 library(patchwork)
 library(mgcv)
+require(ecolMod)
 library(tidyverse)
 ```
 
-Load forcing data
+Load forcing and observed data
 
 ```{r}
+#| code-fold: true
+
 dat_forc <- read.csv(here("data", "forcing.csv")) %>%
   mutate(days = days + 1) # data is 0 base (1.1. corresponds to day 0)
 
@@ -136,9 +144,9 @@ solution <- ode(
 
 Plot the integrated data
 
-::::: columns
-::: {.column width="50%"}
 ```{r}
+#| code-fold: true
+
 plot_phytop <- solution %>%
   as_tibble() %>%
   filter(time > 0) %>%
@@ -149,9 +157,6 @@ plot_phytop <- solution %>%
   theme_light()
 ```
 
-:::
-
-::: {.column width="50%"}
 ```{r}
 #| warning: false
 #| message: false
@@ -162,8 +167,7 @@ plot_phytop <- solution %>%
 plot_phytop
 ```
 
-:::
-:::::
+
 
 Plot the rates
 
@@ -173,7 +177,7 @@ Plot the rates
 ```{r}
 #| warning: false
 #| message: false
-#| echo: false
+#| code-fold: true
 #| label: fig-rates_m1
 #| fig-cap: "Modelled production rates"
 
@@ -231,7 +235,7 @@ plot_rates
 ```
 
 
-## Alternative Interpolation
+## GAMs to interpolate forcing
 
 As seen in @fig-rates_m1, some predictions are quite 'jaggy'. This is probably due to the linear approximations used for the forcing varaibles. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.
 
@@ -252,14 +256,16 @@ for (v in vars) {
     data = dat_forc,
     family = Gamma(link = "log"),
     method = "REML",
-    knots = list(days = c(0.5, 365.5))
+    knots = list(days = c(0, 365))
   )
 }
 ```
 
-Use these GAMs in `parameters`:
+Use these GAMs in `parameters_g`:
 
 ```{r}
+#| code-fold: true
+
 parameters_g <- list(
   # parameters
   p = 2.5, # gC(gC)^-1 d^-1
@@ -274,8 +280,9 @@ parameters_g <- list(
 
 Update model code
 
-
 ```{r}
+#| code-fold: true
+
 m_riley_g <- function(time, state, parameters) {
   with(as.list(c(state, parameters)), {
     # helper function to predict data with GAMs
@@ -287,7 +294,7 @@ m_riley_g <- function(time, state, parameters) {
 
     I_0_t <- max(get_predict("I_0"), I_min * 1.0001) #  avoid I_0 < I_min which would lead to division by 0 (z_eup => 0, used in photos equation)
     k_t <- max(get_predict("k"), 1e-6) # avoid possibel 0 division in z_euph formula
-    L_N_t <- get_predict("L_N")
+    L_N_t <- min(c(1, get_predict("L_N"))) # could potentially exceed 1
     z_mix_t <- get_predict("z_mix")
     temp_t <- get_predict("temp")
     zoo_bm_t <- get_predict("zoo_bm")
@@ -321,7 +328,6 @@ m_riley_g <- function(time, state, parameters) {
 
 Now, solve as before
 
-
 ```{r}
 solution_g <- ode(
   y = state,
@@ -331,13 +337,14 @@ solution_g <- ode(
 )
 ```
 
-Plot pyhtoplankton biomass for both methods
+## Compare both methods
 
+Plot pyhtoplankton biomass for both methods
 
 ```{r}
 #| warning: false
 #| message: false
-#| echo: false
+#| code-fold: true
 #| label: fig-phyto_comparison
 #| fig-cap: "Modelled phytoplankton biomass with `approx()` and GAMS"
 
@@ -370,15 +377,13 @@ Plot the rates next to each other
 ```{r}
 #| warning: false
 #| message: false
-#| echo: false
+#| code-fold: true
 #| label: fig-rates_g
 #| fig-cap: "Compare modelled production rates"
 
-#for some reason, ".1" is added to some column names in solution_g. Quick fix:
-colnames(solution_g) <- colnames(solution)
-
 plot_rates_g <- solution_g %>%
   as.data.frame() %>%
+  rename_with(~ str_remove(.x, "\\.1$")) %>% #for some reason, ".1" is added to some column names
   filter(time > 0) %>%
   ggplot(aes(x = time)) +
   geom_ribbon(
@@ -435,3 +440,69 @@ plot_rates +
   ggtitle("GAM") +
   plot_layout(guides = "collect")
 ```
+
+Plot both interpolation methods for the forcing data
+
+```{r}
+#| code-fold: true
+#| label: fig-forcing_comp
+#| fig-cap: "Compare interpolation of forcing data"
+
+dat_forc_long <- dat_forc %>%
+  pivot_longer(all_of(vars), names_to = "variable", values_to = "value")
+
+dat_interp_forc <- data.frame(days = seq(1, 365))
+
+# interpolate forcing data for each variable as within the model formula
+# loop over "vars" which contail the variable names of the forcing data
+
+dat_interp_forc <- bind_rows(
+  map(vars, function(v) {
+    tibble(
+      days = dat_interp_forc$days,
+      variable = v,
+      value = approx(
+        x = dat_forc$days,
+        y = dat_forc[[v]],
+        xout = dat_interp_forc$days,
+        rule = 2
+      )$y,
+      source = "approx"
+    )
+  }),
+  map(vars, function(v) {
+    tibble(
+      days = dat_interp_forc$days,
+      variable = v,
+      value = exp(predict(gam_list[[v]], newdata = dat_interp_forc)),
+      source = "GAM"
+    )
+  })
+)
+
+
+ggplot(dat_interp_forc, aes(x = days, y = value)) +
+  geom_point(
+    data = dat_forc_long,
+    size = .2
+  ) +
+  geom_line(
+    aes(col = source)
+  ) +
+  facet_grid(variable ~ source, scales = "free") +
+  labs(x = "Day of year", y = NULL, col = NULL) +
+  scale_colour_manual(values = c("#be5523", "#a7a8ec")) +
+  theme_light() +
+  theme(legend.position = "None")
+```
+
+## Calibration
+
+For now, focus on the first model using `approx()` for forcing data interpolation
+
+```{r}
+
+```
+
+ **TODO2: sensitivity stuff
+**
