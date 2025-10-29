@@ -2,13 +2,11 @@
 title: "Riley 1946"
 author: Andreas Eich
 date: 2025-10-28
-execute:
-  freeze: auto
 format:
   html:
       theme: flatly
       table-of-contents: true
-      toc-location: left-body
+      toc-location: left
 ---
 
 ## Setup
@@ -44,44 +42,31 @@ dat_obs <- read.csv(here("data", "observed.csv"))
 Define parameters
 
 ```{r}
-parameters <- list(
+parameters <- c(
   p = 2.5, # gC(gC)^-1 d^-1
   I_min = 0.0015, # g cal cm^-2 min^-1
   r = 0.069, # °C^-1 (Q10=2, Why 0.69 in Excel???)
   R_0 = 0.0175, # day^-1
-  g = 0.0075, # day^-1
-  # forcing data
-  forcing = dat_forc
+  g = 0.0075 # day^-1
 )
 ```
 
 Define first model version. Use `approx()` to interpolate forcing data for each time point. For now, use `rule = 2` so that for time points outside of the period in forcing data values are returned.
 
 ```{r}
-m_riley <- function(time, state, parameters) {
+m_riley <- function(time, state, parameters, forcing_tbl) {
   with(as.list(c(state, parameters)), {
     # helper function to interpolate frocing data
-    get_approx <- function(parameter) {
-      y_val <- approx(
-        x = dat_forc$days,
-        y = dat_forc[[parameter]],
+    get_approx <- function(var) {
+      approx(
+        x = forcing_tbl$days,
+        y = forcing_tbl[[var]],
         xout = time,
         rule = 2
       )$y
-      # catch NA values and stop execution
-      if (is.na(y_val)) {
-        stop(sprintf(
-          "Interpolation failed for '%s' at time %s",
-          parameter,
-          time
-        ))
-      }
-      return(y_val)
     }
 
     # interpolate at "time"
-    dat_forc <- forcing
-
     I_0_t <- max(get_approx("I_0"), I_min * 1.0001) #  avoid I_0 < I_min which would lead to division by 0 (z_eup => 0, used in photos equation)
     k_t <- max(get_approx("k"), 1e-6) # avoid possibel 0 division in z_euph formula
     L_N_t <- get_approx("L_N")
@@ -130,14 +115,15 @@ Time period to be integrated. Use 15 days because starting value is one time ste
 times <- seq(-15, 365, 1)
 ```
 
-Run the model
+Run the model (passing `dat_forc` in `...`)
 
 ```{r}
 solution <- ode(
   y = state,
   times = times,
   func = m_riley,
-  parms = parameters
+  parms = parameters,
+  forcing_tbl = dat_forc
 )
 ```
 
@@ -261,33 +247,17 @@ for (v in vars) {
 }
 ```
 
-Use these GAMs in `parameters_g`:
-
-```{r}
-#| code-fold: true
-
-parameters_g <- list(
-  # parameters
-  p = 2.5, # gC(gC)^-1 d^-1
-  I_min = 0.0015, # g cal cm^-2 min^-1
-  r = 0.069, # °C^-1 OR 0.69???
-  R_0 = 0.0175, # day^-1
-  g = 0.0075, # day^-1
-  # forcing GAMs
-  forcing_gams = gam_list
-)
-```
 
 Update model code
 
 ```{r}
 #| code-fold: true
 
-m_riley_g <- function(time, state, parameters) {
+m_riley_g <- function(time, state, parameters, gam_list_m) {
   with(as.list(c(state, parameters)), {
     # helper function to predict data with GAMs
     get_predict <- function(parameter) {
-      predict(forcing_gams[[parameter]], newdata = data.frame(days = time)) %>%
+      predict(gam_list_m[[parameter]], newdata = data.frame(days = time)) %>%
         # log link was used, predictions on log scale
         exp()
     }
@@ -327,14 +297,27 @@ m_riley_g <- function(time, state, parameters) {
 ```
 
 Now, solve as before
+> Takes a while to fit, not evaluated after 1st run, but saved to output folder
 
 ```{r}
+#| eval: false
+
 solution_g <- ode(
   y = state,
   times = times,
   func = m_riley_g,
-  parms = parameters_g
+  parms = parameters,
+  gam_list_m = gam_list
 )
+
+write_rds(solution_g, here("output", "solution_g.rds"))
+```
+
+Read `solution_g`
+```{r}
+#| code-fold: true
+
+solution_g <- readRDS(here("output", "solution_g.rds"))
 ```
 
 ## Compare both methods
@@ -498,11 +481,88 @@ ggplot(dat_interp_forc, aes(x = days, y = value)) +
 
 ## Calibration
 
-For now, focus on the first model using `approx()` for forcing data interpolation
+For now, focus on the first model using `approx()` for forcing data interpolation. Still, takes a long time to fit, so save output after first run
 
 ```{r}
+#| eval: false
 
+# lower parameters
+par_lower <- parameters * 0.1
+
+# upper parameters
+par_upper <- parameters * 2
+
+# cost function returns sums of squared
+cost_price <- function(par_vec, obs = dat_obs) {
+  # integrate as before, using par_vec as parameter input
+  sim <- ode(
+    y = state,
+    times = times,
+    func = m_riley,
+    parms = as.list(par_vec),
+    forcing_tbl = dat_forc
+  )
+
+  # has to be df and not deSolve object
+  sim_tbl <- as.data.frame(sim)
+
+  # to get predicted values for each observed data point, use approx()
+  sim_at_obs <- approx(
+    x = sim_tbl$time,
+    y = sim_tbl$Phyto_bm,
+    xout = obs$time,
+    rule = 2
+  )$y
+
+  sum((sim_at_obs - obs$Phyto_bm)^2)
+}
+
+fit_price <- pricefit(
+  par = parameters,
+  minpar = par_lower,
+  maxpar = par_upper,
+  func = cost_price,
+  npop = 50,
+  numiter = 500
+)
+
+write_rds(fit_price, here("output", "fit_price.rds"))
 ```
 
- **TODO2: sensitivity stuff
-**
+Read output, use for new integration, and plot
+
+```{r}
+#| code-fold: true
+
+fit_price <- readRDS(here("output", "fit_price.rds"))
+
+solution_price <- ode(
+  y = state,
+  times = times,
+  func = m_riley,
+  parms = fit_price$par,
+  forcing_tbl = dat_forc
+)
+
+solution %>%
+  as.data.frame() %>%
+  select(time, original = Phyto_bm) %>%
+  left_join(
+    solution_price %>%
+      as.data.frame() %>%
+      select(time, pricefit = Phyto_bm),
+    by = "time"
+  ) %>%
+  filter(time > 0) %>%
+  pivot_longer(original:pricefit) %>%
+  ggplot(aes(x = time)) +
+  geom_line(aes(col = name, y = value)) +
+  geom_point(data = dat_obs, aes(y = Phyto_bm)) +
+  scale_colour_manual(values = c("#be5523", "#a7a8ec")) +
+  labs(
+    x = "Days",
+    y = expression("Phytoplankton biomass (gC " * m^-2 * ")"),
+    col = NULL
+  ) +
+  theme_light()
+```
