@@ -1,0 +1,211 @@
+---
+title: "Play
+"
+format: html
+---
+
+# Setup Model
+
+```{r}
+library(here)
+library(deSolve)
+library(patchwork)
+library(mgcv)
+require(ecolMod)
+library(FME)
+library(tidyverse)
+
+dat_forc <- read.csv(here("data", "forcing.csv")) %>%
+  mutate(days = days + 1) # data is 0 base (1.1. corresponds to day 0)
+
+parameters <- c(
+  p = 2.5, # gC(gC)^-1 d^-1
+  I_min = 0.0015, # g cal cm^-2 min^-1
+  r = 0.069, # °C^-1 (Q10=2, Why 0.69 in Excel???)
+  R_0 = 0.0175, # day^-1
+  g = 0.0075 # day^-1
+)
+
+m_riley <- function(time, state, parameters, forcing_tbl) {
+  with(as.list(c(state, parameters)), {
+    # helper function to interpolate frocing data
+    get_approx <- function(var) {
+      approx(
+        x = forcing_tbl$days,
+        y = forcing_tbl[[var]],
+        xout = time,
+        rule = 2
+      )$y
+    }
+
+    # interpolate at "time"
+    I_0_t <- max(get_approx("I_0"), I_min * 1.0001) #  avoid I_0 < I_min which would lead to division by 0 (z_eup => 0, used in photos equation)
+    k_t <- max(get_approx("k"), 1e-6) # avoid possibel 0 division in z_euph formula
+    L_N_t <- get_approx("L_N")
+    z_mix_t <- get_approx("z_mix")
+    temp_t <- get_approx("temp")
+    zoo_bm_t <- get_approx("zoo_bm")
+
+    # Euphotic depth
+    z_euph <- log(I_0_t / I_min) / k_t
+
+    # Light limitation
+    L_V <- if (z_euph < z_mix_t) z_euph / z_mix_t else 1
+
+    photos <- (p * I_0_t) /
+      (k_t * z_euph) *
+      (1 - exp(-k_t * z_euph)) *
+      L_N_t *
+      L_V
+
+    resp <- R_0 * exp(r * temp_t)
+    graz <- g * zoo_bm_t
+
+    dPhyto_bm <- (photos - resp - graz) * Phyto_bm
+
+    list(
+      dPhyto_bm,
+      photos = photos,
+      resp = resp,
+      graz = graz
+    )
+  })
+}
+
+state <- c(Phyto_bm = 3.377)
+
+times <- seq(-15, 365, 1)
+
+solution <- ode(
+  y = state,
+  times = times,
+  func = m_riley,
+  parms = parameters,
+  forcing_tbl = dat_forc
+)
+```
+
+## local sensitivity
+
+```{r}
+solve_riley <- function(pars) {
+  ode(
+    y = state,
+    times = times,
+    func = m_riley,
+    parms = pars,
+    forcing_tbl = dat_forc
+  )
+}
+
+local_sens <- sensFun(
+  func = solve_riley,
+  parms = parameters, # original parameters
+  sensvar = c("Phyto_bm") # look at impact on Phyto_bm
+)
+```
+
+### Plot
+
+```{r}
+local_sens_df <- local_sens %>%
+  as_tibble() %>%
+  filter(var == "Phyto_bm") %>%
+  select(time = x, all_of(names(parameters)))
+
+local_sens_long <- local_sens_df %>%
+  pivot_longer(
+    cols = -time,
+    names_to = "parameter",
+    values_to = "sensitivity"
+  )
+
+ggplot(local_sens_long, aes(time, sensitivity)) +
+  geom_hline(yintercept = 0, colour = "grey70") +
+  geom_line(colour = "#2c7fb8") +
+  facet_wrap(~parameter, scales = "free_y") +
+  labs(
+    title = "Local sensitivity of Phyto_bm by parameter",
+    x = "Day",
+    y = "∂Phyto_bm/∂parameter"
+  ) +
+  theme_minimal()
+```
+
+## Figure 4-style: baseline vs. parameter extremes
+
+```{r}
+run_riley <- function(par_vec) {
+  solve_riley(par_vec) %>%
+    unclass() %>%
+    as.data.frame() %>%
+    as_tibble() %>%
+    select(time, Phyto_bm)
+}
+
+plot_parameter_effect <- function(
+  par_name,
+  down_factor = 0.8,
+  up_factor = 1.2
+) {
+  fmt_value <- function(x) formatC(x, format = "g", digits = 4)
+
+  base_value <- parameters[[par_name]]
+  low_value <- base_value * down_factor
+  high_value <- base_value * up_factor
+
+  base_label <- paste0(par_name, " = ", fmt_value(base_value))
+  low_label <- paste0(par_name, " = ", fmt_value(low_value))
+  high_label <- paste0(par_name, " = ", fmt_value(high_value))
+  scenario_levels <- c(base_label, low_label, high_label)
+
+  base_run <- run_riley(parameters) %>%
+    mutate(scenario = base_label)
+
+  low_pars <- parameters
+  low_pars[[par_name]] <- low_value
+  low_run <- run_riley(low_pars) %>%
+    mutate(scenario = low_label)
+
+  high_pars <- parameters
+  high_pars[[par_name]] <- high_value
+  high_run <- run_riley(high_pars) %>%
+    mutate(scenario = high_label)
+
+  bind_rows(base_run, low_run, high_run) %>%
+    mutate(
+      scenario = factor(
+        scenario,
+        levels = scenario_levels
+      )
+    ) %>%
+    ggplot(aes(time, Phyto_bm, colour = scenario, linetype = scenario)) +
+    geom_line(linewidth = 1) +
+    labs(
+      title = paste("Sensitivity to:", par_name),
+      x = "Days",
+      y = expression("Phytoplankton biomass (gC " * m^-2 * ")"),
+      col = NULL,
+      linetype = NULL
+    ) +
+    scale_colour_manual(
+      values = setNames(c("black", "#1f78b4", "#e31a1c"), scenario_levels),
+      breaks = scenario_levels,
+      labels = scenario_levels
+    ) +
+    scale_linetype_manual(
+      values = setNames(c("solid", "dashed", "dotted"), scenario_levels),
+      breaks = scenario_levels,
+      labels = scenario_levels
+    ) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+}
+
+plot_parameter_effect(par_name = "p")
+plot_parameter_effect(par_name = "I_min")
+plot_parameter_effect(par_name = "r")
+plot_parameter_effect(par_name = "R_0")
+plot_parameter_effect(par_name = "g")
+
+```

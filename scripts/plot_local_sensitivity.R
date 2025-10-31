@@ -1,15 +1,11 @@
-solve_riley <- function(pars) {
+run_riley <- function(par_vec) {
   ode(
     y = state,
     times = times,
     func = m_riley,
-    parms = pars,
+    parms = par_vec,
     forcing_tbl = dat_forc
-  )
-}
-
-run_riley <- function(par_vec) {
-  solve_riley(par_vec) %>%
+  ) %>%
     unclass() %>%
     as.data.frame() %>%
     as_tibble() %>%
