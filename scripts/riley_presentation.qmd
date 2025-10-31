@@ -653,7 +653,7 @@ res_unif <- readRDS(here("output", "global_sen_res_unif.rds"))
 res_unif %>%
   #make long
   pivot_longer(
-    Average:Timing,
+    mean:time_max,
     values_to = "metric_value",
     names_to = "metric"
   ) %>%
@@ -712,7 +712,7 @@ res_norm <- readRDS(here("output", "global_sen_res_norm.rds"))
 res_norm %>%
   #make long
   pivot_longer(
-    Average:Timing,
+    mean:time_max,
     values_to = "metric_value",
     names_to = "metric"
   ) %>%
