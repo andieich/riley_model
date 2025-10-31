@@ -23,7 +23,8 @@ library(deSolve)
 library(patchwork)
 library(mgcv)
 require(ecolMod)
-library(FME)
+library(lhs)
+library(ggh4x)
 library(tidyverse)
 ```
 
@@ -585,4 +586,146 @@ source(here("scripts", "plot_local_sensitivity.R"))
 
   (plot_parameter_effect(par_name = "g") + plot_spacer())
 
+```
+
+### Global Sensitivity analysis
+
+Get [custom function](sim_global_sensitivity.R){target="_blank"} to run simulations with different parameter combinations 
+
+```{r}
+source(here("scripts", "sim_global_sensitivity.R"))
+```
+
+Make data frame with parameter combinations (0.8 * baseline to 1.2 * baseline): Takes long time, save result to output
+```{r}
+#| eval: false
+
+lhs_samples <- randomLHS(n = 100, k = length(parameters))
+
+lwr <- 0.8
+upr <- 1.2
+
+param_sets_unif <- data.frame(
+  p = qunif(
+    lhs_samples[, 1],
+    min = parameters["p"] * lwr,
+    max = parameters["p"] * upr
+  ),
+  I_min = qunif(
+    lhs_samples[, 2],
+    min = parameters["I_min"] * lwr,
+    max = parameters["I_min"] * upr
+  ),
+  r = qunif(
+    lhs_samples[, 3],
+    min = parameters["r"] * lwr,
+    max = parameters["r"] * upr
+  ),
+  R_0 = qunif(
+    lhs_samples[, 4],
+    min = parameters["R_0"] * lwr,
+    max = parameters["R_0"] * upr
+  ),
+  g = qunif(
+    lhs_samples[, 5],
+    min = parameters["g"] * lwr,
+    max = parameters["g"] * upr
+  )
+)
+
+res_unif <- run_sims(param_sets_unif)
+
+write_rds(res_unif, here("output", "global_sen_res_unif.rds"))
+```
+
+
+```{r}
+#| code-fold: true
+#| label: fig-global_sensitivity_lhs
+#| fig-cap: "Global sensitivity LHS"
+#| warning: false
+#| message: false
+
+#read simulations
+res_unif <- readRDS(here("output", "global_sen_res_unif.rds"))
+
+#plot
+res_unif %>%
+  #make long
+  pivot_longer(
+    Average:Timing,
+    values_to = "metric_value",
+    names_to = "metric"
+  ) %>%
+  pivot_longer(p:g, values_to = "parameter_value", names_to = "parameter") %>%
+  ggplot(aes(x = parameter_value, y = metric_value)) +
+  geom_point(shape = 21, alpha = .8) +
+  geom_smooth(method = "lm", color = "black", se = F, linewidth = .4) +
+  facet_grid2(
+    vars(metric),
+    vars(parameter),
+    scales = "free",
+    independent = "y"
+  ) +
+  theme_bw() +
+  labs(y = NULL, x = "Parameter Value")
+```
+
+Now, use normal distribution instead of uniform. sd is 0.1 * baseline. Save results.
+
+```{r}
+#| eval: false
+n_sim <- 100
+sd_fac = 0.1
+
+param_sets_norm <- data.frame(
+  p = rnorm(n = n_sim, mean = parameters["p"], sd = parameters["p"] * sd_fac),
+  I_min = rnorm(
+    n = n_sim,
+    mean = parameters["I_min"],
+    sd = parameters["I_min"] * sd_fac
+  ),
+  r = rnorm(n = n_sim, mean = parameters["r"], sd = parameters["r"] * sd_fac),
+  R_0 = rnorm(
+    n = n_sim,
+    mean = parameters["R_0"],
+    sd = parameters["R_0"] * sd_fac
+  ),
+  g = rnorm(n = n_sim, mean = parameters["g"], sd = parameters["g"] * sd_fac)
+)
+
+
+res_norm <- run_sims(param_sets_norm)
+write_rds(res_norm, here("output", "global_sen_res_norm.rds"))
+```
+
+
+```{r}
+#| code-fold: true
+#| label: fig-global_sensitivity_norm
+#| fig-cap: "Global sensitivity normal distribution"
+#| warning: false
+#| message: false
+
+res_norm <- readRDS(here("output", "global_sen_res_norm.rds"))
+
+res_norm %>%
+  #make long
+  pivot_longer(
+    Average:Timing,
+    values_to = "metric_value",
+    names_to = "metric"
+  ) %>%
+  pivot_longer(p:g, values_to = "parameter_value", names_to = "parameter") %>%
+  ggplot(aes(x = parameter_value, y = metric_value)) +
+  geom_point(shape = 21, alpha = .8) +
+  geom_smooth(method = "lm", color = "black", se = F, linewidth = .4) +
+  facet_grid2(
+    vars(metric),
+    vars(parameter),
+    scales = "free",
+    independent = "y"
+  ) +
+  theme_bw() +
+  labs(y = NULL, x = "Parameter Value")
 ```
