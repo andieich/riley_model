@@ -1,7 +1,6 @@
 ---
 title: "Riley 1946"
 author: Andreas Eich
-date: 2025-10-28
 format:
   html:
       theme: flatly
@@ -38,6 +37,18 @@ dat_forc <- read.csv(here("data", "forcing.csv")) %>%
 
 dat_obs <- read.csv(here("data", "observed.csv"))
 ```
+
+## Model equations
+
+Riley's model equaitions, as adapted by Anderson and Wendy Gentleman:
+
+$$
+\frac{d \text{P}}{d t } = (\overline{\text{P}_\text{h}} - \text{R} - \text{G})* \text{P}
+$$
+
+, where $\text{P}$ is the Phytoplankton biomass, $\overline{\text{P}_\text{h}}$ the average photosynthisis in euphotic zone, and $\text{G}$ the grazing rate.
+
+$\overline{\text{P}_\text{h}}$ is calculated as
 
 ## First Model
 
@@ -477,10 +488,21 @@ ggplot(dat_interp_forc, aes(x = days, y = value)) +
 
 ## Calibration
 
-For now, focus on the first model using `approx()` for forcing data interpolation. Still, takes a long time to fit, so save output after first run
+To improve fit towards end of simulation, copy first observed data point (day 8) to day 365.
+
+```{r}
+#| code-fold: true
+
+dat_obs <- dat_obs %>%
+  add_row(time = 365, Phyto_bm = dat_obs$Phyto_bm[1])
+```
+
+This step takes some time, use the faster model with `approx()` for forcing data interpolation and 15 days interval instead of 1 day. It still takes a long time to fit, so save output after first run. Lower value explored is 0.1 * baseline parameter value and upper value 1 * baseline value.
 
 ```{r}
 #| eval: false
+
+times_calib <- seq(-15, 365, 15)
 
 # lower parameters
 par_lower <- parameters * 0.1
@@ -493,7 +515,7 @@ cost_price <- function(par_vec, obs = dat_obs) {
   # integrate as before, using par_vec as parameter input
   sim <- ode(
     y = state,
-    times = times,
+    times = times_calib,
     func = m_riley,
     parms = as.list(par_vec),
     forcing_tbl = dat_forc
@@ -568,6 +590,7 @@ solution %>%
 ### Local
 
 Get [custom function](plot_local_sensitivity.R){target="_blank"} to local sensitivity analysis. For each parameter, it plots the "baseline" value, and the scenario if that baseline value is multiplied by 0.8 and 1.2 (or other values).
+
 ```{r}
 #| code-fold: true
 #| label: fig-local_sensitivity
@@ -590,13 +613,14 @@ source(here("scripts", "plot_local_sensitivity.R"))
 
 ### Global Sensitivity analysis
 
-Get [custom function](sim_global_sensitivity.R){target="_blank"} to run simulations with different parameter combinations 
+Get [custom function](sim_global_sensitivity.R){target="_blank"} to run simulations with different parameter combinations
 
 ```{r}
 source(here("scripts", "sim_global_sensitivity.R"))
 ```
 
-Make data frame with parameter combinations (0.8 * baseline to 1.2 * baseline): Takes long time, save result to output
+Make data frame with parameter combinations (0.8 \* baseline to 1.2 \* baseline): Takes long time, save result to output
+
 ```{r}
 #| eval: false
 
@@ -638,7 +662,6 @@ res_unif <- run_sims(param_sets_unif)
 write_rds(res_unif, here("output", "global_sen_res_unif.rds"))
 ```
 
-
 ```{r}
 #| code-fold: true
 #| label: fig-global_sensitivity_lhs
@@ -671,7 +694,7 @@ res_unif %>%
   labs(y = NULL, x = "Parameter Value")
 ```
 
-Now, use normal distribution instead of uniform. sd is 0.1 * baseline. Save results.
+Now, use normal distribution instead of uniform. sd is 0.1 \* baseline. Save results.
 
 ```{r}
 #| eval: false
@@ -698,7 +721,6 @@ param_sets_norm <- data.frame(
 res_norm <- run_sims(param_sets_norm)
 write_rds(res_norm, here("output", "global_sen_res_norm.rds"))
 ```
-
 
 ```{r}
 #| code-fold: true
