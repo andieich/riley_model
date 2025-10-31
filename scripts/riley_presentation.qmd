@@ -23,6 +23,7 @@ library(deSolve)
 library(patchwork)
 library(mgcv)
 require(ecolMod)
+library(FME)
 library(tidyverse)
 ```
 
@@ -109,7 +110,7 @@ state <- c(Phyto_bm = 3.377)
 
 Time period to be integrated. Use 15 days because starting value is one time step (originally 15 days) before start of model.
 
-> **Hint:** This leads to `approx()` using the 1st forcing data point for -15 days. See below for improvement. Use interval of 1 day instead of 15 days.
+> `approx()` will use the 1st forcing data point for -15 days. See below for an alternative. Use interval of 1 day instead of 15 days.
 
 ```{r}
 times <- seq(-15, 365, 1)
@@ -126,7 +127,6 @@ solution <- ode(
   forcing_tbl = dat_forc
 )
 ```
-
 
 Plot the integrated data
 
@@ -153,12 +153,7 @@ plot_phytop <- solution %>%
 plot_phytop
 ```
 
-
-
 Plot the rates
-
-> Annoyingly, `ggplot()` can’t make stacked area plots like Excel. `geom_ribbon` with the explicit values have to be used.
-
 
 ```{r}
 #| warning: false
@@ -167,6 +162,7 @@ Plot the rates
 #| label: fig-rates_m1
 #| fig-cap: "Modelled production rates"
 
+# ggplot() can’t make stacked area plots like Excel. geom_ribbon with the explicit values have to be used.
 plot_rates <- solution %>%
   as.data.frame() %>%
   filter(time > 0) %>%
@@ -220,14 +216,13 @@ plot_rates <- solution %>%
 plot_rates
 ```
 
-
 ## GAMs to interpolate forcing
 
-As seen in @fig-rates_m1, some predictions are quite 'jaggy'. This is probably due to the linear approximations used for the forcing varaibles. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.
+As seen in @fig-rates_m1, some predictions are quite 'jaggy'. This is probably due to the linear approximations used for the forcing variables. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.
 
-As an alternative, use "cyclic" GAMs. Cyclic means here, that the end of the data is 'conncted' to the start.
+As an alternative, use "cyclic" GAMs. Cyclic means here, that the first values are considered when fitting the last within a period of 365 days.
 
-Although GAMs are fitted only once outside of the model function, the prediction step takes much more time than `approx()`. 
+Although GAMs are fitted only once outside of the model function, the prediction step takes much more time than `approx()`.
 
 Fit a GAM for each parameter:
 
@@ -246,7 +241,6 @@ for (v in vars) {
   )
 }
 ```
-
 
 Update model code
 
@@ -297,6 +291,7 @@ m_riley_g <- function(time, state, parameters, gam_list_m) {
 ```
 
 Now, solve as before
+
 > Takes a while to fit, not evaluated after 1st run, but saved to output folder
 
 ```{r}
@@ -314,6 +309,7 @@ write_rds(solution_g, here("output", "solution_g.rds"))
 ```
 
 Read `solution_g`
+
 ```{r}
 #| code-fold: true
 
@@ -322,7 +318,7 @@ solution_g <- readRDS(here("output", "solution_g.rds"))
 
 ## Compare both methods
 
-Plot pyhtoplankton biomass for both methods
+Plot phytoplankton biomass for both methods
 
 ```{r}
 #| warning: false
@@ -355,7 +351,6 @@ solution %>%
 ```
 
 Plot the rates next to each other
-
 
 ```{r}
 #| warning: false
@@ -565,4 +560,29 @@ solution %>%
     col = NULL
   ) +
   theme_light()
+```
+
+## Sensitivity Analysis
+
+### Local
+
+Get [custom function](plot_local_sensitivity.R){target="_blank"} to local sensitivity analysis. For each parameter, it plots the "baseline" value, and the scenario if that baseline value is multiplied by 0.8 and 1.2 (or other values).
+```{r}
+#| code-fold: true
+#| label: fig-local_sensitivity
+#| fig-cap: "Local sensitivity analysis"
+#| fig-height: 10
+
+source(here("scripts", "plot_local_sensitivity.R"))
+
+(plot_parameter_effect(par_name = "p") +
+  plot_parameter_effect(par_name = "I_min") +
+  plot_layout(axes = "collect")) /
+
+  (plot_parameter_effect(par_name = "r") +
+    plot_parameter_effect(par_name = "R_0") +
+    plot_layout(axes = "collect")) +
+
+  (plot_parameter_effect(par_name = "g") + plot_spacer())
+
 ```
