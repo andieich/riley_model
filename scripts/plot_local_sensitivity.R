@@ -67,7 +67,7 @@ plot_parameter_effect <- function(
       labels = scenario_levels
     ) +
     scale_linetype_manual(
-      values = setNames(c("solid", "dashed", "dotted"), scenario_levels),
+      values = setNames(c("solid", "11", "11"), scenario_levels),
       breaks = scenario_levels,
       labels = scenario_levels
     ) +
