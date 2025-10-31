@@ -185,10 +185,102 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="model-equations">Model equations</h2>
 <p>Riley’s model equaitions, as adapted by Anderson and Wendy Gentleman:</p>
 <p><span class="math display">\[
-\frac{d \text{P}}{d t } = (\overline{\text{P}_\text{h}} - \text{R} - \text{G})* \text{P}
+\frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G) P
 \]</span></p>
-<p>, where <span class="math inline">\(\text{P}\)</span> is the Phytoplankton biomass, <span class="math inline">\(\overline{\text{P}_\text{h}}\)</span> the average photosynthisis in euphotic zone, and <span class="math inline">\(\text{G}\)</span> the grazing rate.</p>
-<p><span class="math inline">\(\overline{\text{P}_\text{h}}\)</span> is calculated as</p>
+<p>, where <span class="math inline">\(P\)</span> is the Phytoplankton biomass, <span class="math inline">\(\overline{P_h}\)</span> the average photosynthisis in euphotic zone, and <span class="math inline">\(G\)</span> the grazing rate.</p>
+<p><span class="math inline">\(\overline{P_h}\)</span> is calculated as</p>
+<p><span class="math display">\[
+\overline{P_h}  = \frac{\textcolor{#B3541E}{p} \textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k z_\text{euph}}}(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k z_\text{euph}}})\textcolor{#2B5F9E}{L_\text{N}L_\text{V}}
+\]</span></p>
+<p>Parameters are shown in <span style="color:#B3541E">red</span> and forcing variables in <span style="color:#2B5F9E">blue</span></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 24%">
+<col style="width: 24%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong>Parameter</strong></th>
+<th><strong>Value</strong></th>
+<th><strong>Meaning</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\textcolor{#B3541E}{p}\)</span></td>
+<td>2.5 <span class="math inline">\(\mathrm{gC(gC)^{-1}d^{-1}}\)</span></td>
+<td>photosynthetic rate per unit irradiance</td>
+</tr>
+</tbody>
+</table>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 56%">
+<col style="width: 21%">
+<col style="width: 21%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong>Forcing variable</strong></th>
+<th><strong>Unit</strong></th>
+<th><strong>Meaning</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\textcolor{#2B5F9E}{I_0}\)</span></td>
+<td></td>
+<td>Light at seasurface</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\textcolor{#2B5F9E}{k}\)</span></td>
+<td></td>
+<td>extinction coefficient</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\textcolor{#2B5F9E}{z_\text{euph}}\)</span></td>
+<td></td>
+<td>depth of the euphotic zone</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\textcolor{#2B5F9E}{L_\text{N}}\)</span></td>
+<td></td>
+<td>limiting effects of turbulence</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\textcolor{#2B5F9E}{L_\text{V}}\)</span></td>
+<td></td>
+<td>limiting effects of nutrients</td>
+</tr>
+</tbody>
+</table>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 38%">
+<col style="width: 28%">
+<col style="width: 32%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><strong>Parameter</strong></th>
+<th style="text-align: center;"><strong>Value</strong></th>
+<th style="text-align: left;"><strong>Meaning</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><span style="display:inline-block; width:20px; text-align:center;"><span class="math inline">\(\textcolor{#B3541E}{p}\)</span></span></td>
+<td style="text-align: center;">2.5 <span class="math inline">\(\mathrm{gC(gC)^{-1}d^{-1}}\)</span></td>
+<td style="text-align: left;">photosynthetic rate per unit irradiance</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span style="display:inline-block; width:20px; text-align:center;"><span class="math inline">\(\textcolor{#B3541E}{r}\)</span></span></td>
+<td style="text-align: center;">0.3 <span class="math inline">\(\mathrm{d^{-1}}\)</span></td>
+<td style="text-align: left;">specific growth rate</td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="first-model" class="level2">
 <h2 class="anchored" data-anchor-id="first-model">First Model</h2>
@@ -353,8 +445,9 @@ Figure&nbsp;1: Modelled phytoplankton biomass
 <span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
 <span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)) <span class="sc">+</span></span>
-<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>()</span>
-<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>plot_rates</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>plot_rates</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-rates_m1" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -487,7 +580,8 @@ Figure&nbsp;2: Modelled production rates
 <span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="cn">NULL</span></span>
 <span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
 <span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#be5523"</span>, <span class="st">"#a7a8ec"</span>)) <span class="sc">+</span></span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-phyto_comparison" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -559,11 +653,12 @@ Figure&nbsp;3: Modelled phytoplankton biomass with <code>approx()</code> and GAM
 <span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>()</span>
 <span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>plot_rates <span class="sc">+</span></span>
-<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"approx()"</span>) <span class="sc">+</span></span>
-<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>  plot_rates_g <span class="sc">+</span></span>
-<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"GAM"</span>) <span class="sc">+</span></span>
-<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_layout</span>(<span class="at">guides =</span> <span class="st">"collect"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>(plot_rates <span class="sc">+</span></span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"approx()"</span>)) <span class="sc">/</span></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>  (plot_rates_g <span class="sc">+</span></span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="st">"GAM"</span>)) <span class="sc">+</span></span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_layout</span>(<span class="at">guides =</span> <span class="st">"collect"</span>, <span class="at">axes =</span> <span class="st">'collect'</span>, <span class="at">axis_titles =</span> <span class="st">"collect"</span>) <span class="sc">&amp;</span></span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">'bottom'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-rates_g" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -926,6 +1021,7 @@ Figure&nbsp;8: Global sensitivity normal distribution
 </div>
 </div>
 </div>
+<p>In <a href="#fig-global_sensitivity_lhs" class="quarto-xref">Figure&nbsp;7</a> and <a href="#fig-global_sensitivity_norm" class="quarto-xref">Figure&nbsp;8</a>, the timing is mainly in 3 days, independed on the other values, which correlate to the three blooms that seem to depend only on the forcing variables.</p>
 </section>
 </section>
 

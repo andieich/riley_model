@@ -43,12 +43,35 @@ dat_obs <- read.csv(here("data", "observed.csv"))
 Riley's model equaitions, as adapted by Anderson and Wendy Gentleman:
 
 $$
-\frac{d \text{P}}{d t } = (\overline{\text{P}_\text{h}} - \text{R} - \text{G})* \text{P}
+\frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G) P
 $$
 
-, where $\text{P}$ is the Phytoplankton biomass, $\overline{\text{P}_\text{h}}$ the average photosynthisis in euphotic zone, and $\text{G}$ the grazing rate.
+, where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthisis in euphotic zone, and $G$ the grazing rate.
 
-$\overline{\text{P}_\text{h}}$ is calculated as
+$\overline{P_h}$ is calculated as
+
+$$
+\overline{P_h}  = \frac{\textcolor{#B3541E}{p} \textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k z_\text{euph}}}(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k z_\text{euph}}})\textcolor{#2B5F9E}{L_\text{N}L_\text{V}}
+$$
+
+Parameters are shown in [red]{style="color:#B3541E"} and forcing variables in [blue]{style="color:#2B5F9E"}
+
+| **Parameter** | **Value** | **Meaning** |
+|-------------------------------------|------------------|------------------|
+| $\textcolor{#B3541E}{p}$ | 2.5 $\mathrm{gC(gC)^{-1}d^{-1}}$ | photosynthetic rate per unit irradiance |
+
+| **Forcing variable** | **Unit** | **Meaning** |
+|-----------------------------------------|----------------|----------------|
+| $\textcolor{#2B5F9E}{I_0}$ |  | Light at seasurface |
+| $\textcolor{#2B5F9E}{k}$ |  | extinction coefficient |
+| $\textcolor{#2B5F9E}{z_\text{euph}}$ |  | depth of the euphotic zone |
+| $\textcolor{#2B5F9E}{L_\text{N}}$ |  | limiting effects of turbulence |
+| $\textcolor{#2B5F9E}{L_\text{V}}$ |  | limiting effects of nutrients |
+
+| **Parameter** | **Value** | **Meaning** |
+|:--------------------------:|:-------------------:|:-----------------------|
+| [$\textcolor{#B3541E}{p}$]{style="display:inline-block; width:20px; text-align:center;"} | 2.5 $\mathrm{gC(gC)^{-1}d^{-1}}$ | photosynthetic rate per unit irradiance |
+| [$\textcolor{#B3541E}{r}$]{style="display:inline-block; width:20px; text-align:center;"} | 0.3 $\mathrm{d^{-1}}$ | specific growth rate |
 
 ## First Model
 
@@ -224,7 +247,8 @@ plot_rates <- solution %>%
     )
   ) +
   scale_x_continuous(expand = c(0, 0)) +
-  theme_light()
+  theme_light() +
+  theme(legend.position = "bottom")
 plot_rates
 ```
 
@@ -359,7 +383,8 @@ solution %>%
     col = NULL
   ) +
   scale_colour_manual(values = c("#be5523", "#a7a8ec")) +
-  theme_light()
+  theme_light() +
+  theme(legend.position = "bottom")
 ```
 
 Plot the rates next to each other
@@ -368,6 +393,7 @@ Plot the rates next to each other
 #| warning: false
 #| message: false
 #| code-fold: true
+#| fig-height: 8
 #| label: fig-rates_g
 #| fig-cap: "Compare modelled production rates"
 
@@ -424,17 +450,19 @@ plot_rates_g <- solution_g %>%
   theme_light()
 
 
-plot_rates +
-  ggtitle("approx()") +
-  plot_rates_g +
-  ggtitle("GAM") +
-  plot_layout(guides = "collect")
+(plot_rates +
+  ggtitle("approx()")) /
+  (plot_rates_g +
+    ggtitle("GAM")) +
+  plot_layout(guides = "collect", axes = 'collect', axis_titles = "collect") &
+  theme(legend.position = 'bottom')
 ```
 
 Plot both interpolation methods for the forcing data
 
 ```{r}
 #| code-fold: true
+#| fig-height: 10
 #| label: fig-forcing_comp
 #| fig-cap: "Compare interpolation of forcing data"
 
@@ -497,7 +525,7 @@ dat_obs <- dat_obs %>%
   add_row(time = 365, Phyto_bm = dat_obs$Phyto_bm[1])
 ```
 
-This step takes some time, use the faster model with `approx()` for forcing data interpolation and 15 days interval instead of 1 day. It still takes a long time to fit, so save output after first run. Lower value explored is 0.1 * baseline parameter value and upper value 1 * baseline value.
+This step takes some time, use the faster model with `approx()` for forcing data interpolation and 15 days interval instead of 1 day. It still takes a long time to fit, so save output after first run. Lower value explored is 0.1 \* baseline parameter value and upper value 1 \* baseline value.
 
 ```{r}
 #| eval: false
@@ -751,3 +779,5 @@ res_norm %>%
   theme_bw() +
   labs(y = NULL, x = "Parameter Value")
 ```
+
+In @fig-global_sensitivity_lhs and @fig-global_sensitivity_norm, the timing is mainly in 3 days, independed on the other values, which correlate to the three blooms that seem to depend only on the forcing variables.
