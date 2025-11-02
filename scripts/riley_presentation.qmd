@@ -1,0 +1,856 @@
+---
+title: "Riley 1946"
+author: Andreas Eich
+format:
+  revealjs:
+      theme: flatly
+      table-of-contents: true
+      toc-location: left
+---
+
+## Model equations
+
+### Differential Equation
+
+
+$$
+\frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G)~P
+$$
+
+, where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthisis in euphotic zone, and $G$ the grazing rate.
+
+
+### Photosynthesis Rate
+
+The biomass-specific photosynthesis rate $\overline{P_h}$ is calculated as
+
+$$
+\overline{P_h}  = \frac{\textcolor{#B3541E}{p}~\textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k~z_\text{euph}}}~(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k~z_\text{euph}}})~\textcolor{#2B5F9E}{L_\text{N}~L_\text{V}}
+$$
+
+Parameters are shown in [red]{style="color:#B3541E"} and forcing variables in [blue]{style="color:#2B5F9E"}
+
+**Parameters:**
+
+- $\textcolor{#B3541E}{p}$ = 2.5 $\mathrm{\frac{gC~gC^{-1}~d^{-1}}{g~cal~cm^{-2}~min^{-1}}}$ *Photosynthetic rate per unit irradiance*
+
+
+**Forcing variables:**
+
+- $\textcolor{#2B5F9E}{I_0}$: *Light at seasurface* in $\mathrm{\mu E~m^{-2}~s^{-1}}$
+- $\textcolor{#2B5F9E}{k}$: *Light attenuation in the euphotic zone*$\mathrm{m^{-1}}$
+- $\textcolor{#2B5F9E}{L_\text{N}}$: *Limiting effects of turbulence*, unitless
+- $\textcolor{#2B5F9E}{L_\text{V}}$: *Limiting effects of nutrients*, unitless
+- $\textcolor{#2B5F9E}{z_\text{euph}}$: *Depth of the euphotic zone* in $\mathrm{m}$
+
+$\textcolor{#2B5F9E}{L_\text{V}}$ is calculated as
+
+$$
+\textcolor{#2B5F9E}{L_\text{V}} = \min(1, \frac{\textcolor{#2B5F9E}{z_\text{euph}}}{\textcolor{#2B5F9E}{z_\text{mix}}})
+$$
+, where $\textcolor{#2B5F9E}{z_\text{mix}}$ is the depth of the mixed layer in $\mathrm{m}$
+
+
+$\textcolor{#2B5F9E}{z_\text{euph}}$ is calculated as
+
+$$
+\textcolor{#2B5F9E}{z_\text{euph}} = \log(\frac{\textcolor{#2B5F9E}{I_0}}{\textcolor{#B3541E}{I_\text{min}}})
+$$
+, where $\textcolor{#B3541E}{I_\text{min}}$ is a parameter defining the light intensity at the base of the euphotic zone: 0.0015 $\mathrm{g~cal~cm^{−2}~min^{−1}}$
+
+
+### Respiration Rate
+
+The biomass-specific respiration rate $R$ is calculated as
+
+$$
+R = \textcolor{#B3541E}{R_0}~\mathrm{e}^{\textcolor{#B3541E}{r}~\textcolor{#2B5F9E}{\text{temp}}}
+$$
+
+**Parameters:**
+
+- $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 ◦C*, in $\mathrm{d^{-1}}$
+- $\textcolor{#B3541E}{r}$: 0.069 $\text{°C}^{-1}$ *Temperature dependency of respiration rate*
+
+$\textcolor{#B3541E}{r}$ is equal $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
+
+**Forcing Variables:**
+
+- $\textcolor{#2B5F9E}{\text{temp}}$: *Surface (?) seawater temperature* in $\textrm{°C}$
+
+
+### Grazing Rate
+
+The biomass-specific grazing rate $G$ is calculated as
+
+$$
+G = \textcolor{#B3541E}{g}~\textcolor{#2B5F9E}{zoo_{\text{bm}}}
+$$
+
+
+**Parameters:**
+
+- $\textcolor{#B3541E}{g}$: 0.0075 $\mathrm{\frac{d^{-1}}{gC~m^{-2}}}$ *Clearance rate of grazers*
+
+
+**Forcing Variables:**
+
+- $\textcolor{#2B5F9E}{zoo_{\text{bm}}}$: *Biomass of zooplankton* in $\mathrm{gC~m^{-2}}$ (?)
+
+
+
+
+## Model in R
+
+
+## Setup
+
+Load packages
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+library(here)
+library(deSolve)
+library(patchwork)
+library(mgcv)
+require(ecolMod)
+library(lhs)
+library(ggh4x)
+library(tidyverse)
+```
+
+Load forcing and observed data
+
+```{r}
+#| code-fold: true
+
+dat_forc <- read.csv(here("data", "forcing.csv")) %>%
+  mutate(days = days + 1) # data is 0 base (1.1. corresponds to day 0)
+
+dat_obs <- read.csv(here("data", "observed.csv"))
+```
+
+Define parameters
+
+```{r}
+parameters <- c(
+  p = 2.5,
+  I_min = 0.0015,
+  r = 0.069,
+  R_0 = 0.0175,
+  g = 0.0075
+)
+```
+
+Define first model version. Use `approx()` to interpolate forcing data for each time point. For now, use `rule = 2` so that for time points outside of the period in forcing data values are returned.
+
+```{r}
+m_riley <- function(time, state, parameters, forcing_tbl) {
+  with(as.list(c(state, parameters)), {
+    # helper function to interpolate frocing data
+    get_approx <- function(var) {
+      approx(
+        x = forcing_tbl$days,
+        y = forcing_tbl[[var]],
+        xout = time,
+        rule = 2
+      )$y
+    }
+
+    # interpolate at "time"
+    I_0_t <- max(get_approx("I_0"), I_min * 1.0001) #  avoid I_0 < I_min which would lead to division by 0 (z_eup => 0, used in photos equation)
+    k_t <- max(get_approx("k"), 1e-6) # avoid possible 0-division in z_euph formula
+    L_N_t <- get_approx("L_N")
+    z_mix_t <- get_approx("z_mix")
+    temp_t <- get_approx("temp")
+    zoo_bm_t <- get_approx("zoo_bm")
+
+    # Euphotic depth
+    z_euph <- log(I_0_t / I_min) / k_t
+
+    # Light limitation
+    L_V <- if (z_euph < z_mix_t) z_euph / z_mix_t else 1
+
+    photos <- (p * I_0_t) /
+      (k_t * z_euph) *
+      (1 - exp(-k_t * z_euph)) *
+      L_N_t *
+      L_V
+
+    resp <- R_0 * exp(r * temp_t)
+    graz <- g * zoo_bm_t
+
+    dPhyto_bm <- (photos - resp - graz) * Phyto_bm
+
+    list(
+      dPhyto_bm,
+      photos = photos,
+      resp = resp,
+      graz = graz
+    )
+  })
+}
+```
+
+Define initial conditions
+
+```{r}
+state <- c(Phyto_bm = 3.377)
+```
+
+Time period to be integrated. Use 15 days because starting value is one time step (originally 15 days) before start of model.
+
+> `approx()` will use the 1st forcing data point for -15 days. See below for an alternative. Use interval of 1 day instead of 15 days.
+
+```{r}
+times <- seq(-15, 365, 1)
+```
+
+Run the model (passing `dat_forc` in `...`)
+
+```{r}
+solution <- ode(
+  y = state,
+  times = times,
+  func = m_riley,
+  parms = parameters,
+  forcing_tbl = dat_forc
+)
+```
+
+Plot the integrated data
+
+```{r}
+#| code-fold: true
+
+plot_phytop <- solution %>%
+  as_tibble() %>%
+  filter(time > 0) %>%
+  ggplot(aes(x = time, y = Phyto_bm)) +
+  geom_area(fill = "lightblue") +
+  geom_point(data = dat_obs) +
+  labs(x = "Days", y = expression("Phytoplankton biomass (gC " * m^-2 * ")")) +
+  theme_light()
+```
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: fig-phyto_m1
+#| fig-cap: "Modelled phytoplankton biomass"
+
+plot_phytop
+```
+
+Plot the rates
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| label: fig-rates_m1
+#| fig-cap: "Modelled production rates"
+
+# ggplot() can’t make stacked area plots like Excel. geom_ribbon with the explicit values have to be used.
+plot_rates <- solution %>%
+  as.data.frame() %>%
+  filter(time > 0) %>%
+  ggplot(aes(x = time)) +
+  geom_ribbon(
+    aes(
+      ymin = photos - resp,
+      ymax = photos,
+      fill = "Respiration"
+    )
+  ) +
+  # green: respiration→net layer
+  geom_ribbon(
+    aes(
+      ymin = photos - resp - graz,
+      ymax = photos - resp,
+      fill = "Grazing"
+    )
+  ) +
+  scale_fill_manual(
+    name = NULL,
+    values = c(
+      "Respiration" = "#5095d4",
+      "Grazing" = "#125a52"
+    )
+  ) +
+  geom_line(
+    aes(y = photos - resp - graz, linetype = "Net Production"),
+    linewidth = .7
+  ) +
+  geom_line(
+    aes(y = photos, linetype = "Gross Production"),
+    linewidth = .7
+  ) +
+  geom_hline(yintercept = 0, linetype = "11", col = "grey30") +
+  scale_linetype_manual(
+    name = NULL,
+    values = c("Net Production" = "solid", "Gross Production" = "11")
+  ) +
+  labs(
+    x = "Days",
+    y = expression(
+      "Specific rate (d"^{
+        -1
+      } *
+        ")"
+    )
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  theme_light() +
+  theme(legend.position = "bottom")
+plot_rates
+```
+
+## GAMs to interpolate forcing
+
+As seen in @fig-rates_m1, some predictions are quite 'jaggy'. This is probably due to the linear approximations used for the forcing variables. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.
+
+As an alternative, use "cyclic" GAMs. Cyclic means here, that the first values are considered when fitting the last within a period of 365 days.
+
+Although GAMs are fitted only once outside of the model function, the prediction step takes much more time than `approx()`.
+
+Fit a GAM for each parameter:
+
+```{r}
+gam_list <- list()
+vars <- c("I_0", "k", "L_N", "z_mix", "temp", "zoo_bm")
+
+for (v in vars) {
+  form <- bquote(.(as.name(v)) ~ s(days, k = .(nrow(dat_forc)), bs = "cc"))
+  gam_list[[v]] <- gam(
+    formula = form,
+    data = dat_forc,
+    family = Gamma(link = "log"),
+    method = "REML",
+    knots = list(days = c(0, 365))
+  )
+}
+```
+
+Update model code
+
+```{r}
+#| code-fold: true
+
+m_riley_g <- function(time, state, parameters, gam_list_m) {
+  with(as.list(c(state, parameters)), {
+    # helper function to predict data with GAMs
+    get_predict <- function(parameter) {
+      predict(gam_list_m[[parameter]], newdata = data.frame(days = time)) %>%
+        # log link was used, predictions on log scale
+        exp()
+    }
+
+    I_0_t <- max(get_predict("I_0"), I_min * 1.0001) #  avoid I_0 < I_min which would lead to division by 0 (z_eup => 0, used in photos equation)
+    k_t <- max(get_predict("k"), 1e-6) # avoid possibel 0 division in z_euph formula
+    L_N_t <- min(c(1, get_predict("L_N"))) # could potentially exceed 1
+    z_mix_t <- get_predict("z_mix")
+    temp_t <- get_predict("temp")
+    zoo_bm_t <- get_predict("zoo_bm")
+
+    # Euphotic depth
+    z_euph <- log(I_0_t / I_min) / k_t
+
+    # Light limitation
+    L_V <- if (z_euph < z_mix_t) z_euph / z_mix_t else 1
+
+    photos <- (p * I_0_t) /
+      (k_t * z_euph) *
+      (1 - exp(-k_t * z_euph)) *
+      L_N_t *
+      L_V
+
+    resp <- R_0 * exp(r * temp_t)
+    graz <- g * zoo_bm_t
+
+    dPhyto_bm <- (photos - resp - graz) * Phyto_bm
+
+    list(
+      dPhyto_bm,
+      photos = photos,
+      resp = resp,
+      graz = graz
+    )
+  })
+}
+```
+
+Now, solve as before
+
+> Takes a while to fit, not evaluated after 1st run, but saved to output folder
+
+```{r}
+#| eval: false
+
+solution_g <- ode(
+  y = state,
+  times = times,
+  func = m_riley_g,
+  parms = parameters,
+  gam_list_m = gam_list
+)
+
+write_rds(solution_g, here("output", "solution_g.rds"))
+```
+
+Read `solution_g`
+
+```{r}
+#| code-fold: true
+
+solution_g <- readRDS(here("output", "solution_g.rds"))
+```
+
+## Compare both methods
+
+Plot phytoplankton biomass for both methods
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| label: fig-phyto_comparison
+#| fig-cap: "Modelled phytoplankton biomass with `approx()` and GAMS"
+
+solution %>%
+  as.data.frame() %>%
+  filter(time > 0) %>%
+  select(time, approx = Phyto_bm) %>%
+  left_join(
+    solution_g %>%
+      as.data.frame() %>%
+      filter(time > 0) %>%
+      select(time, GAM = Phyto_bm)
+  ) %>%
+  pivot_longer(approx:GAM) %>%
+  ggplot(aes(x = time)) +
+  geom_line(aes(y = value, col = name), linewidth = .7) +
+  geom_point(data = dat_obs, aes(y = Phyto_bm)) +
+  labs(
+    x = "Days",
+    y = expression("Phytoplankton biomass (gC " * m^-2 * ")"),
+    col = NULL
+  ) +
+  scale_colour_manual(values = c("#be5523", "#a7a8ec")) +
+  theme_light() +
+  theme(legend.position = "bottom")
+```
+
+Plot the rates next to each other
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| fig-height: 8
+#| label: fig-rates_g
+#| fig-cap: "Compare modelled production rates"
+
+plot_rates_g <- solution_g %>%
+  as.data.frame() %>%
+  rename_with(~ str_remove(.x, "\\.1$")) %>% #for some reason, ".1" is added to some column names
+  filter(time > 0) %>%
+  ggplot(aes(x = time)) +
+  geom_ribbon(
+    aes(
+      ymin = photos - resp,
+      ymax = photos,
+      fill = "Respiration"
+    )
+  ) +
+  # green: respiration→net layer
+  geom_ribbon(
+    aes(
+      ymin = photos - resp - graz,
+      ymax = photos - resp,
+      fill = "Grazing"
+    )
+  ) +
+  scale_fill_manual(
+    name = NULL,
+    values = c(
+      "Respiration" = "#5095d4",
+      "Grazing" = "#125a52"
+    )
+  ) +
+  geom_line(
+    aes(y = photos - resp - graz, linetype = "Net Production"),
+    linewidth = .7
+  ) +
+  geom_line(
+    aes(y = photos, linetype = "Gross Production"),
+    linewidth = .7
+  ) +
+  geom_hline(yintercept = 0, linetype = "11", col = "grey30") +
+  scale_linetype_manual(
+    name = NULL,
+    values = c("Net Production" = "solid", "Gross Production" = "11")
+  ) +
+  labs(
+    x = "Days",
+    y = expression(
+      "Specific rate (d"^{
+        -1
+      } *
+        ")"
+    )
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  theme_light()
+
+
+(plot_rates +
+  ggtitle("approx()")) /
+  (plot_rates_g +
+    ggtitle("GAM")) +
+  plot_layout(guides = "collect", axes = 'collect', axis_titles = "collect") &
+  theme(legend.position = 'bottom')
+```
+
+Plot both interpolation methods for the forcing data
+
+```{r}
+#| code-fold: true
+#| fig-height: 10
+#| label: fig-forcing_comp
+#| fig-cap: "Compare interpolation of forcing data"
+
+dat_forc_long <- dat_forc %>%
+  pivot_longer(all_of(vars), names_to = "variable", values_to = "value")
+
+dat_interp_forc <- data.frame(days = seq(1, 365))
+
+# interpolate forcing data for each variable as within the model formula
+# loop over "vars" which contail the variable names of the forcing data
+
+dat_interp_forc <- bind_rows(
+  map(vars, function(v) {
+    tibble(
+      days = dat_interp_forc$days,
+      variable = v,
+      value = approx(
+        x = dat_forc$days,
+        y = dat_forc[[v]],
+        xout = dat_interp_forc$days,
+        rule = 2
+      )$y,
+      source = "approx"
+    )
+  }),
+  map(vars, function(v) {
+    tibble(
+      days = dat_interp_forc$days,
+      variable = v,
+      value = exp(predict(gam_list[[v]], newdata = dat_interp_forc)),
+      source = "GAM"
+    )
+  })
+)
+
+ggplot(dat_interp_forc, aes(x = days, y = value)) +
+  geom_point(
+    data = dat_forc_long,
+    size = .2
+  ) +
+  geom_line(
+    aes(col = source)
+  ) +
+  facet_grid(variable ~ source, scales = "free") +
+  labs(x = "Day of year", y = NULL, col = NULL) +
+  scale_colour_manual(values = c("#be5523", "#a7a8ec")) +
+  theme_light() +
+  theme(legend.position = "None")
+```
+
+## Calibration
+
+To improve fit towards end of simulation, copy first observed data point (day 8) to day 365.
+
+```{r}
+#| code-fold: true
+
+dat_obs <- dat_obs %>%
+  add_row(time = 365, Phyto_bm = dat_obs$Phyto_bm[1])
+```
+
+This step takes some time, use the faster model with `approx()`. Only integrate at -15 days (initial conditions) and the timpoints in observed data. It still takes a long time to fit, so save output after first run. 
+
+Lower value explored is 0.5 \* baseline parameter value and upper value 2 \* baseline value.
+
+```{r}
+#| eval: false
+
+times_calib <- c(-15, dat_obs$time)
+
+# lower parameters
+par_lower <- parameters * 0.5
+
+# upper parameters
+par_upper <- parameters * 2
+
+# cost function returns sums of squared
+cost_price <- function(par_vec, obs = dat_obs) {
+  progress <<- ifelse(exists("progress"), progress + 1, 1)
+  if (progress %% 100 == 0) {
+    cat(progress, "evaluations\n")
+  }
+  # integrate as before, using par_vec as parameter input
+  sim <- tryCatch(
+    ode(
+      y = state,
+      times = times_calib,
+      func = m_riley,
+      parms = as.list(par_vec),
+      forcing_tbl = dat_forc
+    ),
+    error = function(e) NULL
+  )
+
+  # if ode() fails, return huge penalty value
+  if (is.null(sim)) {
+    return(1e8)
+  }
+
+  # subset simulations to timpoints in observed data (= remove -15 days)
+  sim_match <- sim[sim[, "time"] %in% obs$time, "Phyto_bm"]
+
+  # check for non-finite values
+  if (any(!is.finite(sim_match))) {
+    return(1e8)
+  }
+
+  # sum of squared residuals
+  sum((sim_match - obs$Phyto_bm)^2)
+}
+
+
+fit_price <- pricefit(
+  par = parameters,
+  minpar = par_lower,
+  maxpar = par_upper,
+  func = cost_price,
+  npop = 50,
+  numiter = 10000,
+  varleft = 1e-8,
+  centroid = 3
+)
+
+
+write_rds(fit_price, here("output", "fit_price.rds"))
+```
+
+Read output, use for new integration, and plot
+
+```{r}
+#| code-fold: true
+
+fit_price <- readRDS(here("output", "fit_price.rds"))
+
+solution_price <- ode(
+  y = state,
+  times = times,
+  func = m_riley,
+  parms = fit_price$par,
+  forcing_tbl = dat_forc
+)
+
+solution %>%
+  as.data.frame() %>%
+  select(time, original = Phyto_bm) %>%
+  left_join(
+    solution_price %>%
+      as.data.frame() %>%
+      select(time, pricefit = Phyto_bm),
+    by = "time"
+  ) %>%
+  filter(time > 0) %>%
+  pivot_longer(original:pricefit) %>%
+  ggplot(aes(x = time)) +
+  geom_line(aes(col = name, y = value)) +
+  geom_point(data = dat_obs, aes(y = Phyto_bm)) +
+  scale_colour_manual(values = c("#be5523", "#a7a8ec")) +
+  labs(
+    x = "Days",
+    y = expression("Phytoplankton biomass (gC " * m^-2 * ")"),
+    col = NULL
+  ) +
+  theme_light()
+```
+
+## Sensitivity Analysis
+
+### Local
+
+Get [custom function](plot_local_sensitivity.R){target="_blank"} to local sensitivity analysis. For each parameter, it plots the "baseline" value, and the scenario if that baseline value is multiplied by 0.8 and 1.2 (or other values).
+
+```{r}
+#| code-fold: true
+#| label: fig-local_sensitivity
+#| fig-cap: "Local sensitivity analysis"
+#| fig-height: 10
+
+source(here("scripts", "plot_local_sensitivity.R"))
+
+(plot_parameter_effect(par_name = "p") +
+  plot_parameter_effect(par_name = "I_min") +
+  plot_layout(axes = "collect")) /
+
+  (plot_parameter_effect(par_name = "r") +
+    plot_parameter_effect(par_name = "R_0") +
+    plot_layout(axes = "collect")) +
+
+  (plot_parameter_effect(par_name = "g") + plot_spacer())
+
+```
+
+### Global Sensitivity analysis
+
+Get [custom function](sim_global_sensitivity.R){target="_blank"} to run simulations with different parameter combinations
+
+```{r}
+source(here("scripts", "sim_global_sensitivity.R"))
+```
+
+Make data frame with parameter combinations (0.8 \* baseline to 1.2 \* baseline): Takes long time, save result to output
+
+```{r}
+#| eval: false
+
+lhs_samples <- randomLHS(n = 100, k = length(parameters))
+
+lwr <- 0.8
+upr <- 1.2
+
+param_sets_unif <- data.frame(
+  p = qunif(
+    lhs_samples[, 1],
+    min = parameters["p"] * lwr,
+    max = parameters["p"] * upr
+  ),
+  I_min = qunif(
+    lhs_samples[, 2],
+    min = parameters["I_min"] * lwr,
+    max = parameters["I_min"] * upr
+  ),
+  r = qunif(
+    lhs_samples[, 3],
+    min = parameters["r"] * lwr,
+    max = parameters["r"] * upr
+  ),
+  R_0 = qunif(
+    lhs_samples[, 4],
+    min = parameters["R_0"] * lwr,
+    max = parameters["R_0"] * upr
+  ),
+  g = qunif(
+    lhs_samples[, 5],
+    min = parameters["g"] * lwr,
+    max = parameters["g"] * upr
+  )
+)
+
+res_unif <- run_sims(param_sets_unif)
+
+write_rds(res_unif, here("output", "global_sen_res_unif.rds"))
+```
+
+```{r}
+#| code-fold: true
+#| label: fig-global_sensitivity_lhs
+#| fig-cap: "Global sensitivity LHS"
+#| warning: false
+#| message: false
+
+#read simulations
+res_unif <- readRDS(here("output", "global_sen_res_unif.rds"))
+
+#plot
+res_unif %>%
+  #make long
+  pivot_longer(
+    mean:time_max,
+    values_to = "metric_value",
+    names_to = "metric"
+  ) %>%
+  pivot_longer(p:g, values_to = "parameter_value", names_to = "parameter") %>%
+  ggplot(aes(x = parameter_value, y = metric_value)) +
+  geom_point(shape = 21, alpha = .8) +
+  geom_smooth(method = "lm", color = "black", se = F, linewidth = .4) +
+  facet_grid2(
+    vars(metric),
+    vars(parameter),
+    scales = "free",
+    independent = "y"
+  ) +
+  theme_bw() +
+  labs(y = NULL, x = "Parameter Value")
+```
+
+Now, use normal distribution instead of uniform. sd is 0.1 \* baseline. Save results.
+
+```{r}
+#| eval: false
+n_sim <- 100
+sd_fac = 0.1
+
+param_sets_norm <- data.frame(
+  p = rnorm(n = n_sim, mean = parameters["p"], sd = parameters["p"] * sd_fac),
+  I_min = rnorm(
+    n = n_sim,
+    mean = parameters["I_min"],
+    sd = parameters["I_min"] * sd_fac
+  ),
+  r = rnorm(n = n_sim, mean = parameters["r"], sd = parameters["r"] * sd_fac),
+  R_0 = rnorm(
+    n = n_sim,
+    mean = parameters["R_0"],
+    sd = parameters["R_0"] * sd_fac
+  ),
+  g = rnorm(n = n_sim, mean = parameters["g"], sd = parameters["g"] * sd_fac)
+)
+
+
+res_norm <- run_sims(param_sets_norm)
+write_rds(res_norm, here("output", "global_sen_res_norm.rds"))
+```
+
+```{r}
+#| code-fold: true
+#| label: fig-global_sensitivity_norm
+#| fig-cap: "Global sensitivity normal distribution"
+#| warning: false
+#| message: false
+
+res_norm <- readRDS(here("output", "global_sen_res_norm.rds"))
+
+res_norm %>%
+  #make long
+  pivot_longer(
+    mean:time_max,
+    values_to = "metric_value",
+    names_to = "metric"
+  ) %>%
+  pivot_longer(p:g, values_to = "parameter_value", names_to = "parameter") %>%
+  ggplot(aes(x = parameter_value, y = metric_value)) +
+  geom_point(shape = 21, alpha = .8) +
+  geom_smooth(method = "lm", color = "black", se = F, linewidth = .4) +
+  facet_grid2(
+    vars(metric),
+    vars(parameter),
+    scales = "free",
+    independent = "y"
+  ) +
+  theme_bw() +
+  labs(y = NULL, x = "Parameter Value")
+```
+
+In @fig-global_sensitivity_lhs and @fig-global_sensitivity_norm, the timing is mainly in 3 days, independed on the other values, which correlate to the three blooms that seem to depend only on the forcing variables.
