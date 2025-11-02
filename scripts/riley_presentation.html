@@ -111,9 +111,15 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a></li>
-  <li><a href="#model-equations" id="toc-model-equations" class="nav-link" data-scroll-target="#model-equations">Model equations</a></li>
-  <li><a href="#first-model" id="toc-first-model" class="nav-link" data-scroll-target="#first-model">First Model</a></li>
+  <li><a href="#model-equations" id="toc-model-equations" class="nav-link active" data-scroll-target="#model-equations">Model equations</a>
+  <ul class="collapse">
+  <li><a href="#differential-equation" id="toc-differential-equation" class="nav-link" data-scroll-target="#differential-equation">Differential Equation</a></li>
+  <li><a href="#photosynthesis-rate" id="toc-photosynthesis-rate" class="nav-link" data-scroll-target="#photosynthesis-rate">Photosynthesis Rate</a></li>
+  <li><a href="#respiration-rate" id="toc-respiration-rate" class="nav-link" data-scroll-target="#respiration-rate">Respiration Rate</a></li>
+  <li><a href="#grazing-rate" id="toc-grazing-rate" class="nav-link" data-scroll-target="#grazing-rate">Grazing Rate</a></li>
+  </ul></li>
+  <li><a href="#model-in-r" id="toc-model-in-r" class="nav-link" data-scroll-target="#model-in-r">Model in R</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
   <li><a href="#gams-to-interpolate-forcing" id="toc-gams-to-interpolate-forcing" class="nav-link" data-scroll-target="#gams-to-interpolate-forcing">GAMs to interpolate forcing</a></li>
   <li><a href="#compare-both-methods" id="toc-compare-both-methods" class="nav-link" data-scroll-target="#compare-both-methods">Compare both methods</a></li>
   <li><a href="#calibration" id="toc-calibration" class="nav-link" data-scroll-target="#calibration">Calibration</a></li>
@@ -154,6 +160,79 @@ window.Quarto = {
 </header>
 
 
+<section id="model-equations" class="level2">
+<h2 class="anchored" data-anchor-id="model-equations">Model equations</h2>
+<section id="differential-equation" class="level3">
+<h3 class="anchored" data-anchor-id="differential-equation">Differential Equation</h3>
+<p><span class="math display">\[
+\frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G)~P
+\]</span></p>
+<p>, where <span class="math inline">\(P\)</span> is the Phytoplankton biomass, <span class="math inline">\(\overline{P_h}\)</span> the average photosynthisis in euphotic zone, and <span class="math inline">\(G\)</span> the grazing rate.</p>
+</section>
+<section id="photosynthesis-rate" class="level3">
+<h3 class="anchored" data-anchor-id="photosynthesis-rate">Photosynthesis Rate</h3>
+<p>The biomass-specific photosynthesis rate <span class="math inline">\(\overline{P_h}\)</span> is calculated as</p>
+<p><span class="math display">\[
+\overline{P_h}  = \frac{\textcolor{#B3541E}{p}~\textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k~z_\text{euph}}}~(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k~z_\text{euph}}})~\textcolor{#2B5F9E}{L_\text{N}~L_\text{V}}
+\]</span></p>
+<p>Parameters are shown in <span style="color:#B3541E">red</span> and forcing variables in <span style="color:#2B5F9E">blue</span></p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><span class="math inline">\(\textcolor{#B3541E}{p}\)</span> = 2.5 <span class="math inline">\(\mathrm{\frac{gC~gC^{-1}~d^{-1}}{g~cal~cm^{-2}~min^{-1}}}\)</span> <em>Photosynthetic rate per unit irradiance</em></li>
+</ul>
+<p><strong>Forcing variables:</strong></p>
+<ul>
+<li><span class="math inline">\(\textcolor{#2B5F9E}{I_0}\)</span>: <em>Light at seasurface</em> in <span class="math inline">\(\mathrm{\mu E~m^{-2}~s^{-1}}\)</span></li>
+<li><span class="math inline">\(\textcolor{#2B5F9E}{k}\)</span>: <em>Light attenuation in the euphotic zone</em><span class="math inline">\(\mathrm{m^{-1}}\)</span></li>
+<li><span class="math inline">\(\textcolor{#2B5F9E}{L_\text{N}}\)</span>: <em>Limiting effects of turbulence</em>, unitless</li>
+<li><span class="math inline">\(\textcolor{#2B5F9E}{L_\text{V}}\)</span>: <em>Limiting effects of nutrients</em>, unitless</li>
+<li><span class="math inline">\(\textcolor{#2B5F9E}{z_\text{euph}}\)</span>: <em>Depth of the euphotic zone</em> in <span class="math inline">\(\mathrm{m}\)</span></li>
+</ul>
+<p><span class="math inline">\(\textcolor{#2B5F9E}{L_\text{V}}\)</span> is calculated as</p>
+<p><span class="math display">\[
+\textcolor{#2B5F9E}{L_\text{V}} = \min(1, \frac{\textcolor{#2B5F9E}{z_\text{euph}}}{\textcolor{#2B5F9E}{z_\text{mix}}})
+\]</span> , where <span class="math inline">\(\textcolor{#2B5F9E}{z_\text{mix}}\)</span> is the depth of the mixed layer in <span class="math inline">\(\mathrm{m}\)</span></p>
+<p><span class="math inline">\(\textcolor{#2B5F9E}{z_\text{euph}}\)</span> is calculated as</p>
+<p><span class="math display">\[
+\textcolor{#2B5F9E}{z_\text{euph}} = \log(\frac{\textcolor{#2B5F9E}{I_0}}{\textcolor{#B3541E}{I_\text{min}}})
+\]</span> , where <span class="math inline">\(\textcolor{#B3541E}{I_\text{min}}\)</span> is a parameter defining the light intensity at the base of the euphotic zone: 0.0015 <span class="math inline">\(\mathrm{g~cal~cm^{−2}~min^{−1}}\)</span></p>
+</section>
+<section id="respiration-rate" class="level3">
+<h3 class="anchored" data-anchor-id="respiration-rate">Respiration Rate</h3>
+<p>The biomass-specific respiration rate <span class="math inline">\(R\)</span> is calculated as</p>
+<p><span class="math display">\[
+R = \textcolor{#B3541E}{R_0}~\mathrm{e}^{\textcolor{#B3541E}{r}~\textcolor{#2B5F9E}{\text{temp}}}
+\]</span></p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><span class="math inline">\(\textcolor{#B3541E}{R_0}\)</span>: 0.0175 <span class="math inline">\(\text{d}^{-1}\)</span> <em>Respiration rate of phytoplankton at 0 ◦C</em>, in <span class="math inline">\(\mathrm{d^{-1}}\)</span></li>
+<li><span class="math inline">\(\textcolor{#B3541E}{r}\)</span>: 0.069 <span class="math inline">\(\text{°C}^{-1}\)</span> <em>Temperature dependency of respiration rate</em></li>
+</ul>
+<p><span class="math inline">\(\textcolor{#B3541E}{r}\)</span> is equal <span class="math inline">\(Q_{10} = 2\)</span>, i.e.&nbsp;doubling of rate for 10 °C increase in temperature: <span class="math inline">\(\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2\)</span></p>
+<p><strong>Forcing Variables:</strong></p>
+<ul>
+<li><span class="math inline">\(\textcolor{#2B5F9E}{\text{temp}}\)</span>: <em>Surface (?) seawater temperature</em> in <span class="math inline">\(\textrm{°C}\)</span></li>
+</ul>
+</section>
+<section id="grazing-rate" class="level3">
+<h3 class="anchored" data-anchor-id="grazing-rate">Grazing Rate</h3>
+<p>The biomass-specific grazing rate <span class="math inline">\(G\)</span> is calculated as</p>
+<p><span class="math display">\[
+G = \textcolor{#B3541E}{g}~\textcolor{#2B5F9E}{zoo_{\text{bm}}}
+\]</span></p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><span class="math inline">\(\textcolor{#B3541E}{g}\)</span>: 0.0075 <span class="math inline">\(\mathrm{\frac{d^{-1}}{gC~m^{-2}}}\)</span> <em>Clearance rate of grazers</em></li>
+</ul>
+<p><strong>Forcing Variables:</strong></p>
+<ul>
+<li><span class="math inline">\(\textcolor{#2B5F9E}{zoo_{\text{bm}}}\)</span>: <em>Biomass of zooplankton</em> in <span class="math inline">\(\mathrm{gC~m^{-2}}\)</span> (?)</li>
+</ul>
+</section>
+</section>
+<section id="model-in-r" class="level2">
+<h2 class="anchored" data-anchor-id="model-in-r">Model in R</h2>
+</section>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
 <p>Load packages</p>
@@ -180,118 +259,14 @@ window.Quarto = {
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>dat_obs <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">"data"</span>, <span class="st">"observed.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-</section>
-<section id="model-equations" class="level2">
-<h2 class="anchored" data-anchor-id="model-equations">Model equations</h2>
-<p>Riley’s model equaitions, as adapted by Anderson and Wendy Gentleman:</p>
-<p><span class="math display">\[
-\frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G) P
-\]</span></p>
-<p>, where <span class="math inline">\(P\)</span> is the Phytoplankton biomass, <span class="math inline">\(\overline{P_h}\)</span> the average photosynthisis in euphotic zone, and <span class="math inline">\(G\)</span> the grazing rate.</p>
-<p><span class="math inline">\(\overline{P_h}\)</span> is calculated as</p>
-<p><span class="math display">\[
-\overline{P_h}  = \frac{\textcolor{#B3541E}{p} \textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k z_\text{euph}}}(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k z_\text{euph}}})\textcolor{#2B5F9E}{L_\text{N}L_\text{V}}
-\]</span></p>
-<p>Parameters are shown in <span style="color:#B3541E">red</span> and forcing variables in <span style="color:#2B5F9E">blue</span></p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 24%">
-<col style="width: 24%">
-</colgroup>
-<thead>
-<tr class="header">
-<th><strong>Parameter</strong></th>
-<th><strong>Value</strong></th>
-<th><strong>Meaning</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\(\textcolor{#B3541E}{p}\)</span></td>
-<td>2.5 <span class="math inline">\(\mathrm{gC(gC)^{-1}d^{-1}}\)</span></td>
-<td>photosynthetic rate per unit irradiance</td>
-</tr>
-</tbody>
-</table>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 56%">
-<col style="width: 21%">
-<col style="width: 21%">
-</colgroup>
-<thead>
-<tr class="header">
-<th><strong>Forcing variable</strong></th>
-<th><strong>Unit</strong></th>
-<th><strong>Meaning</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\(\textcolor{#2B5F9E}{I_0}\)</span></td>
-<td></td>
-<td>Light at seasurface</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(\textcolor{#2B5F9E}{k}\)</span></td>
-<td></td>
-<td>extinction coefficient</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(\textcolor{#2B5F9E}{z_\text{euph}}\)</span></td>
-<td></td>
-<td>depth of the euphotic zone</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(\textcolor{#2B5F9E}{L_\text{N}}\)</span></td>
-<td></td>
-<td>limiting effects of turbulence</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(\textcolor{#2B5F9E}{L_\text{V}}\)</span></td>
-<td></td>
-<td>limiting effects of nutrients</td>
-</tr>
-</tbody>
-</table>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 38%">
-<col style="width: 28%">
-<col style="width: 32%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: center;"><strong>Parameter</strong></th>
-<th style="text-align: center;"><strong>Value</strong></th>
-<th style="text-align: left;"><strong>Meaning</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;"><span style="display:inline-block; width:20px; text-align:center;"><span class="math inline">\(\textcolor{#B3541E}{p}\)</span></span></td>
-<td style="text-align: center;">2.5 <span class="math inline">\(\mathrm{gC(gC)^{-1}d^{-1}}\)</span></td>
-<td style="text-align: left;">photosynthetic rate per unit irradiance</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;"><span style="display:inline-block; width:20px; text-align:center;"><span class="math inline">\(\textcolor{#B3541E}{r}\)</span></span></td>
-<td style="text-align: center;">0.3 <span class="math inline">\(\mathrm{d^{-1}}\)</span></td>
-<td style="text-align: left;">specific growth rate</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="first-model" class="level2">
-<h2 class="anchored" data-anchor-id="first-model">First Model</h2>
 <p>Define parameters</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">p =</span> <span class="fl">2.5</span>, <span class="co"># gC(gC)^-1 d^-1</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">I_min =</span> <span class="fl">0.0015</span>, <span class="co"># g cal cm^-2 min^-1</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">r =</span> <span class="fl">0.069</span>, <span class="co"># °C^-1 (Q10=2, Why 0.69 in Excel???)</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">R_0 =</span> <span class="fl">0.0175</span>, <span class="co"># day^-1</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">g =</span> <span class="fl">0.0075</span> <span class="co"># day^-1</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">p =</span> <span class="fl">2.5</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">I_min =</span> <span class="fl">0.0015</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">r =</span> <span class="fl">0.069</span>, <span class="co"># Q10=2</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">R_0 =</span> <span class="fl">0.0175</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">g =</span> <span class="fl">0.0075</span></span>
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Define first model version. Use <code>approx()</code> to interpolate forcing data for each time point. For now, use <code>rule = 2</code> so that for time points outside of the period in forcing data values are returned.</p>
@@ -310,7 +285,7 @@ window.Quarto = {
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># interpolate at "time"</span></span>
 <span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    I_0_t <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="fu">get_approx</span>(<span class="st">"I_0"</span>), I_min <span class="sc">*</span> <span class="fl">1.0001</span>) <span class="co">#  avoid I_0 &lt; I_min which would lead to division by 0 (z_eup =&gt; 0, used in photos equation)</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    k_t <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="fu">get_approx</span>(<span class="st">"k"</span>), <span class="fl">1e-6</span>) <span class="co"># avoid possibel 0 division in z_euph formula</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    k_t <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="fu">get_approx</span>(<span class="st">"k"</span>), <span class="fl">1e-6</span>) <span class="co"># avoid possible 0-division in z_euph formula</span></span>
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    L_N_t <span class="ot">&lt;-</span> <span class="fu">get_approx</span>(<span class="st">"L_N"</span>)</span>
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    z_mix_t <span class="ot">&lt;-</span> <span class="fu">get_approx</span>(<span class="st">"z_mix"</span>)</span>
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    temp_t <span class="ot">&lt;-</span> <span class="fu">get_approx</span>(<span class="st">"temp"</span>)</span>
@@ -709,20 +684,19 @@ Figure&nbsp;4: Compare modelled production rates
 <span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>  })</span>
 <span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(dat_interp_forc, <span class="fu">aes</span>(<span class="at">x =</span> days, <span class="at">y =</span> value)) <span class="sc">+</span></span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
-<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat_forc_long,</span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> .<span class="dv">2</span></span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
-<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">col =</span> source)</span>
-<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(variable <span class="sc">~</span> source, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
-<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Day of year"</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">col =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#be5523"</span>, <span class="st">"#a7a8ec"</span>)) <span class="sc">+</span></span>
-<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
-<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"None"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(dat_interp_forc, <span class="fu">aes</span>(<span class="at">x =</span> days, <span class="at">y =</span> value)) <span class="sc">+</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat_forc_long,</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> .<span class="dv">2</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">col =</span> source)</span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(variable <span class="sc">~</span> source, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Day of year"</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">col =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#be5523"</span>, <span class="st">"#a7a8ec"</span>)) <span class="sc">+</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"None"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-forcing_comp" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -748,12 +722,12 @@ Figure&nbsp;5: Compare interpolation of forcing data
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_row</span>(<span class="at">time =</span> <span class="dv">365</span>, <span class="at">Phyto_bm =</span> dat_obs<span class="sc">$</span>Phyto_bm[<span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<p>This step takes some time, use the faster model with <code>approx()</code> for forcing data interpolation and 15 days interval instead of 1 day. It still takes a long time to fit, so save output after first run. Lower value explored is 0.1 * baseline parameter value and upper value 1 * baseline value.</p>
+<p>This step takes some time, use the faster model with <code>approx()</code> for forcing data interpolation and 15 days interval instead of 1 day. It still takes a long time to fit, so save output after first run. Lower value explored is 0.5 * baseline parameter value and upper value 2 * baseline value.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>times_calib <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">15</span>, <span class="dv">365</span>, <span class="dv">15</span>)</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># lower parameters</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>par_lower <span class="ot">&lt;-</span> parameters <span class="sc">*</span> <span class="fl">0.1</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>par_lower <span class="ot">&lt;-</span> parameters <span class="sc">*</span> <span class="fl">0.5</span></span>
 <span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co"># upper parameters</span></span>
 <span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>par_upper <span class="ot">&lt;-</span> parameters <span class="sc">*</span> <span class="dv">2</span></span>
@@ -761,38 +735,48 @@ Figure&nbsp;5: Compare interpolation of forcing data
 <span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co"># cost function returns sums of squared</span></span>
 <span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>cost_price <span class="ot">&lt;-</span> <span class="cf">function</span>(par_vec, <span class="at">obs =</span> dat_obs) {</span>
 <span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># integrate as before, using par_vec as parameter input</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  sim <span class="ot">&lt;-</span> <span class="fu">ode</span>(</span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> state,</span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">times =</span> times_calib,</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">func =</span> m_riley,</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">parms =</span> <span class="fu">as.list</span>(par_vec),</span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">forcing_tbl =</span> dat_forc</span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># has to be df and not deSolve object</span></span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>  sim_tbl <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(sim)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  sim <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ode</span>(</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> state,</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">times =</span> times_calib,</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">func =</span> m_riley,</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">parms =</span> <span class="fu">as.list</span>(par_vec),</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">forcing_tbl =</span> dat_forc</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># to get predicted values for each observed data point, use approx()</span></span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>  sim_at_obs <span class="ot">&lt;-</span> <span class="fu">approx</span>(</span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> sim_tbl<span class="sc">$</span>time,</span>
-<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> sim_tbl<span class="sc">$</span>Phyto_bm,</span>
-<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">xout =</span> obs<span class="sc">$</span>time,</span>
-<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">rule =</span> <span class="dv">2</span></span>
-<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">$</span>y</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># if ode() fails, return huge penalty value</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(sim) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(<span class="fu">as.data.frame</span>(sim)<span class="sc">$</span>Phyto_bm))) {</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fl">1e40</span>)</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># has to be df and not deSolve object</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  sim_tbl <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(sim)</span>
 <span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>((sim_at_obs <span class="sc">-</span> obs<span class="sc">$</span>Phyto_bm)<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>fit_price <span class="ot">&lt;-</span> <span class="fu">pricefit</span>(</span>
-<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">par =</span> parameters,</span>
-<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">minpar =</span> par_lower,</span>
-<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>  <span class="at">maxpar =</span> par_upper,</span>
-<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>  <span class="at">func =</span> cost_price,</span>
-<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>  <span class="at">npop =</span> <span class="dv">50</span>,</span>
-<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>  <span class="at">numiter =</span> <span class="dv">500</span></span>
-<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(fit_price, <span class="fu">here</span>(<span class="st">"output"</span>, <span class="st">"fit_price.rds"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># to get predicted values for each observed data point, use approx()</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>  sim_at_obs <span class="ot">&lt;-</span> <span class="fu">approx</span>(</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> sim_tbl<span class="sc">$</span>time,</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> sim_tbl<span class="sc">$</span>Phyto_bm,</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">xout =</span> obs<span class="sc">$</span>time,</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">rule =</span> <span class="dv">2</span></span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">$</span>y</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>((sim_at_obs <span class="sc">-</span> obs<span class="sc">$</span>Phyto_bm)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>fit_price <span class="ot">&lt;-</span> <span class="fu">pricefit</span>(</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>  <span class="at">par =</span> parameters,</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>  <span class="at">minpar =</span> par_lower,</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>  <span class="at">maxpar =</span> par_upper,</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">func =</span> cost_price,</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>  <span class="at">npop =</span> <span class="dv">50</span>,</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">numiter =</span> <span class="dv">10000</span>,</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">varleft =</span> <span class="fl">1e-8</span>,</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a>  <span class="at">centroid =</span> <span class="dv">3</span></span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(fit_price, <span class="fu">here</span>(<span class="st">"output"</span>, <span class="st">"fit_price.rds"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Read output, use for new integration, and plot</p>
 <div class="cell">

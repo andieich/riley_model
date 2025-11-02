@@ -8,6 +8,101 @@ format:
       toc-location: left
 ---
 
+## Model equations
+
+### Differential Equation
+
+
+$$
+\frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G)~P
+$$
+
+, where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthisis in euphotic zone, and $G$ the grazing rate.
+
+
+### Photosynthesis Rate
+
+The biomass-specific photosynthesis rate $\overline{P_h}$ is calculated as
+
+$$
+\overline{P_h}  = \frac{\textcolor{#B3541E}{p}~\textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k~z_\text{euph}}}~(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k~z_\text{euph}}})~\textcolor{#2B5F9E}{L_\text{N}~L_\text{V}}
+$$
+
+Parameters are shown in [red]{style="color:#B3541E"} and forcing variables in [blue]{style="color:#2B5F9E"}
+
+**Parameters:**
+
+- $\textcolor{#B3541E}{p}$ = 2.5 $\mathrm{\frac{gC~gC^{-1}~d^{-1}}{g~cal~cm^{-2}~min^{-1}}}$ *Photosynthetic rate per unit irradiance*
+
+
+**Forcing variables:**
+
+- $\textcolor{#2B5F9E}{I_0}$: *Light at seasurface* in $\mathrm{\mu E~m^{-2}~s^{-1}}$
+- $\textcolor{#2B5F9E}{k}$: *Light attenuation in the euphotic zone*$\mathrm{m^{-1}}$
+- $\textcolor{#2B5F9E}{L_\text{N}}$: *Limiting effects of turbulence*, unitless
+- $\textcolor{#2B5F9E}{L_\text{V}}$: *Limiting effects of nutrients*, unitless
+- $\textcolor{#2B5F9E}{z_\text{euph}}$: *Depth of the euphotic zone* in $\mathrm{m}$
+
+$\textcolor{#2B5F9E}{L_\text{V}}$ is calculated as
+
+$$
+\textcolor{#2B5F9E}{L_\text{V}} = \min(1, \frac{\textcolor{#2B5F9E}{z_\text{euph}}}{\textcolor{#2B5F9E}{z_\text{mix}}})
+$$
+, where $\textcolor{#2B5F9E}{z_\text{mix}}$ is the depth of the mixed layer in $\mathrm{m}$
+
+
+$\textcolor{#2B5F9E}{z_\text{euph}}$ is calculated as
+
+$$
+\textcolor{#2B5F9E}{z_\text{euph}} = \log(\frac{\textcolor{#2B5F9E}{I_0}}{\textcolor{#B3541E}{I_\text{min}}})
+$$
+, where $\textcolor{#B3541E}{I_\text{min}}$ is a parameter defining the light intensity at the base of the euphotic zone: 0.0015 $\mathrm{g~cal~cm^{−2}~min^{−1}}$
+
+
+### Respiration Rate
+
+The biomass-specific respiration rate $R$ is calculated as
+
+$$
+R = \textcolor{#B3541E}{R_0}~\mathrm{e}^{\textcolor{#B3541E}{r}~\textcolor{#2B5F9E}{\text{temp}}}
+$$
+
+**Parameters:**
+
+- $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 ◦C*, in $\mathrm{d^{-1}}$
+- $\textcolor{#B3541E}{r}$: 0.069 $\text{°C}^{-1}$ *Temperature dependency of respiration rate*
+
+$\textcolor{#B3541E}{r}$ is equal $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
+
+**Forcing Variables:**
+
+- $\textcolor{#2B5F9E}{\text{temp}}$: *Surface (?) seawater temperature* in $\textrm{°C}$
+
+
+### Grazing Rate
+
+The biomass-specific grazing rate $G$ is calculated as
+
+$$
+G = \textcolor{#B3541E}{g}~\textcolor{#2B5F9E}{zoo_{\text{bm}}}
+$$
+
+
+**Parameters:**
+
+- $\textcolor{#B3541E}{g}$: 0.0075 $\mathrm{\frac{d^{-1}}{gC~m^{-2}}}$ *Clearance rate of grazers*
+
+
+**Forcing Variables:**
+
+- $\textcolor{#2B5F9E}{zoo_{\text{bm}}}$: *Biomass of zooplankton* in $\mathrm{gC~m^{-2}}$ (?)
+
+
+
+
+## Model in R
+
+
 ## Setup
 
 Load packages
@@ -38,52 +133,15 @@ dat_forc <- read.csv(here("data", "forcing.csv")) %>%
 dat_obs <- read.csv(here("data", "observed.csv"))
 ```
 
-## Model equations
-
-Riley's model equaitions, as adapted by Anderson and Wendy Gentleman:
-
-$$
-\frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G) P
-$$
-
-, where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthisis in euphotic zone, and $G$ the grazing rate.
-
-$\overline{P_h}$ is calculated as
-
-$$
-\overline{P_h}  = \frac{\textcolor{#B3541E}{p} \textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k z_\text{euph}}}(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k z_\text{euph}}})\textcolor{#2B5F9E}{L_\text{N}L_\text{V}}
-$$
-
-Parameters are shown in [red]{style="color:#B3541E"} and forcing variables in [blue]{style="color:#2B5F9E"}
-
-| **Parameter** | **Value** | **Meaning** |
-|-------------------------------------|------------------|------------------|
-| $\textcolor{#B3541E}{p}$ | 2.5 $\mathrm{gC(gC)^{-1}d^{-1}}$ | photosynthetic rate per unit irradiance |
-
-| **Forcing variable** | **Unit** | **Meaning** |
-|-----------------------------------------|----------------|----------------|
-| $\textcolor{#2B5F9E}{I_0}$ |  | Light at seasurface |
-| $\textcolor{#2B5F9E}{k}$ |  | extinction coefficient |
-| $\textcolor{#2B5F9E}{z_\text{euph}}$ |  | depth of the euphotic zone |
-| $\textcolor{#2B5F9E}{L_\text{N}}$ |  | limiting effects of turbulence |
-| $\textcolor{#2B5F9E}{L_\text{V}}$ |  | limiting effects of nutrients |
-
-| **Parameter** | **Value** | **Meaning** |
-|:--------------------------:|:-------------------:|:-----------------------|
-| [$\textcolor{#B3541E}{p}$]{style="display:inline-block; width:20px; text-align:center;"} | 2.5 $\mathrm{gC(gC)^{-1}d^{-1}}$ | photosynthetic rate per unit irradiance |
-| [$\textcolor{#B3541E}{r}$]{style="display:inline-block; width:20px; text-align:center;"} | 0.3 $\mathrm{d^{-1}}$ | specific growth rate |
-
-## First Model
-
 Define parameters
 
 ```{r}
 parameters <- c(
-  p = 2.5, # gC(gC)^-1 d^-1
-  I_min = 0.0015, # g cal cm^-2 min^-1
-  r = 0.069, # °C^-1 (Q10=2, Why 0.69 in Excel???)
-  R_0 = 0.0175, # day^-1
-  g = 0.0075 # day^-1
+  p = 2.5,
+  I_min = 0.0015,
+  r = 0.069,
+  R_0 = 0.0175,
+  g = 0.0075
 )
 ```
 
@@ -104,7 +162,7 @@ m_riley <- function(time, state, parameters, forcing_tbl) {
 
     # interpolate at "time"
     I_0_t <- max(get_approx("I_0"), I_min * 1.0001) #  avoid I_0 < I_min which would lead to division by 0 (z_eup => 0, used in photos equation)
-    k_t <- max(get_approx("k"), 1e-6) # avoid possibel 0 division in z_euph formula
+    k_t <- max(get_approx("k"), 1e-6) # avoid possible 0-division in z_euph formula
     L_N_t <- get_approx("L_N")
     z_mix_t <- get_approx("z_mix")
     temp_t <- get_approx("temp")
@@ -498,7 +556,6 @@ dat_interp_forc <- bind_rows(
   })
 )
 
-
 ggplot(dat_interp_forc, aes(x = days, y = value)) +
   geom_point(
     data = dat_forc_long,
@@ -525,43 +582,56 @@ dat_obs <- dat_obs %>%
   add_row(time = 365, Phyto_bm = dat_obs$Phyto_bm[1])
 ```
 
-This step takes some time, use the faster model with `approx()` for forcing data interpolation and 15 days interval instead of 1 day. It still takes a long time to fit, so save output after first run. Lower value explored is 0.1 \* baseline parameter value and upper value 1 \* baseline value.
+This step takes some time, use the faster model with `approx()`. Only integrate at -15 days (initial conditions) and the timpoints in observed data. It still takes a long time to fit, so save output after first run. 
+
+Lower value explored is 0.5 \* baseline parameter value and upper value 2 \* baseline value.
 
 ```{r}
 #| eval: false
 
-times_calib <- seq(-15, 365, 15)
+times_calib <- c(-15, dat_obs$time)
 
 # lower parameters
-par_lower <- parameters * 0.1
+par_lower <- parameters * 0.5
 
 # upper parameters
 par_upper <- parameters * 2
 
 # cost function returns sums of squared
 cost_price <- function(par_vec, obs = dat_obs) {
+  progress <<- ifelse(exists("progress"), progress + 1, 1)
+  if (progress %% 100 == 0) {
+    cat(progress, "evaluations\n")
+  }
   # integrate as before, using par_vec as parameter input
-  sim <- ode(
-    y = state,
-    times = times_calib,
-    func = m_riley,
-    parms = as.list(par_vec),
-    forcing_tbl = dat_forc
+  sim <- tryCatch(
+    ode(
+      y = state,
+      times = times_calib,
+      func = m_riley,
+      parms = as.list(par_vec),
+      forcing_tbl = dat_forc
+    ),
+    error = function(e) NULL
   )
 
-  # has to be df and not deSolve object
-  sim_tbl <- as.data.frame(sim)
+  # if ode() fails, return huge penalty value
+  if (is.null(sim)) {
+    return(1e8)
+  }
 
-  # to get predicted values for each observed data point, use approx()
-  sim_at_obs <- approx(
-    x = sim_tbl$time,
-    y = sim_tbl$Phyto_bm,
-    xout = obs$time,
-    rule = 2
-  )$y
+  # subset simulations to timpoints in observed data (= remove -15 days)
+  sim_match <- sim[sim[, "time"] %in% obs$time, "Phyto_bm"]
 
-  sum((sim_at_obs - obs$Phyto_bm)^2)
+  # check for non-finite values
+  if (any(!is.finite(sim_match))) {
+    return(1e8)
+  }
+
+  # sum of squared residuals
+  sum((sim_match - obs$Phyto_bm)^2)
 }
+
 
 fit_price <- pricefit(
   par = parameters,
@@ -569,8 +639,11 @@ fit_price <- pricefit(
   maxpar = par_upper,
   func = cost_price,
   npop = 50,
-  numiter = 500
+  numiter = 10000,
+  varleft = 1e-8,
+  centroid = 3
 )
+
 
 write_rds(fit_price, here("output", "fit_price.rds"))
 ```
