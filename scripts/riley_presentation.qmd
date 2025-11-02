@@ -3,7 +3,6 @@ title: "Riley 1946"
 author: Andreas Eich
 format:
   revealjs:
-      theme: flatly
       table-of-contents: true
       toc-location: left
 ---
