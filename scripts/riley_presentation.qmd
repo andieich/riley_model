@@ -1,15 +1,12 @@
 ---
 title: "Riley 1946"
 author: Andreas Eich
-format:
-  revealjs:
-      table-of-contents: true
-      toc-location: left
+format: pptx
 ---
 
-## Model equations
+# Model equations
 
-### Differential Equation
+## Differential Equation
 
 
 $$
@@ -19,82 +16,82 @@ $$
 , where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthisis in euphotic zone, and $G$ the grazing rate.
 
 
-### Photosynthesis Rate
+## Photosynthesis Rate
 
 The biomass-specific photosynthesis rate $\overline{P_h}$ is calculated as
 
 $$
-\overline{P_h}  = \frac{\textcolor{#B3541E}{p}~\textcolor{#2B5F9E}{I_0}}{\textcolor{#2B5F9E}{k~z_\text{euph}}}~(1-\mathrm{e}^{-\textcolor{#2B5F9E}{k~z_\text{euph}}})~\textcolor{#2B5F9E}{L_\text{N}~L_\text{V}}
+\overline{P_h}  = \frac{\textcolor{saddlebrown}{p}~\textcolor{steelblue}{I_0}}{\textcolor{steelblue}{k~z_\text{euph}}}~(1-\mathrm{e}^{-\textcolor{steelblue}{k~z_\text{euph}}})~\textcolor{steelblue}{L_\text{N}~L_\text{V}}
 $$
 
-Parameters are shown in [red]{style="color:#B3541E"} and forcing variables in [blue]{style="color:#2B5F9E"}
+Parameters are shown in [red]{style="color:saddlebrown"} and forcing variables in [blue]{style="color:steelblue"}
 
 **Parameters:**
 
-- $\textcolor{#B3541E}{p}$ = 2.5 $\mathrm{\frac{gC~gC^{-1}~d^{-1}}{g~cal~cm^{-2}~min^{-1}}}$ *Photosynthetic rate per unit irradiance*
+- $\textcolor{saddlebrown}{p}$ = 2.5 $\mathrm{\frac{gC~gC^{-1}~d^{-1}}{g~cal~cm^{-2}~min^{-1}}}$ *Photosynthetic rate per unit irradiance*
 
 
 **Forcing variables:**
 
-- $\textcolor{#2B5F9E}{I_0}$: *Light at seasurface* in $\mathrm{\mu E~m^{-2}~s^{-1}}$
-- $\textcolor{#2B5F9E}{k}$: *Light attenuation in the euphotic zone*$\mathrm{m^{-1}}$
-- $\textcolor{#2B5F9E}{L_\text{N}}$: *Limiting effects of turbulence*, unitless
-- $\textcolor{#2B5F9E}{L_\text{V}}$: *Limiting effects of nutrients*, unitless
-- $\textcolor{#2B5F9E}{z_\text{euph}}$: *Depth of the euphotic zone* in $\mathrm{m}$
+- $\textcolor{steelblue}{I_0}$: *Light at seasurface* in $\mathrm{\mu E~m^{-2}~s^{-1}}$
+- $\textcolor{steelblue}{k}$: *Light attenuation in the euphotic zone*$\mathrm{m^{-1}}$
+- $\textcolor{steelblue}{L_\text{N}}$: *Limiting effects of turbulence*, unitless
+- $\textcolor{steelblue}{L_\text{V}}$: *Limiting effects of nutrients*, unitless
+- $\textcolor{steelblue}{z_\text{euph}}$: *Depth of the euphotic zone* in $\mathrm{m}$
 
-$\textcolor{#2B5F9E}{L_\text{V}}$ is calculated as
-
-$$
-\textcolor{#2B5F9E}{L_\text{V}} = \min(1, \frac{\textcolor{#2B5F9E}{z_\text{euph}}}{\textcolor{#2B5F9E}{z_\text{mix}}})
-$$
-, where $\textcolor{#2B5F9E}{z_\text{mix}}$ is the depth of the mixed layer in $\mathrm{m}$
-
-
-$\textcolor{#2B5F9E}{z_\text{euph}}$ is calculated as
+$\textcolor{steelblue}{L_\text{V}}$ is calculated as
 
 $$
-\textcolor{#2B5F9E}{z_\text{euph}} = \log(\frac{\textcolor{#2B5F9E}{I_0}}{\textcolor{#B3541E}{I_\text{min}}})
+\textcolor{steelblue}{L_\text{V}} = \min(1, \frac{\textcolor{steelblue}{z_\text{euph}}}{\textcolor{steelblue}{z_\text{mix}}})
 $$
-, where $\textcolor{#B3541E}{I_\text{min}}$ is a parameter defining the light intensity at the base of the euphotic zone: 0.0015 $\mathrm{g~cal~cm^{−2}~min^{−1}}$
+, where $\textcolor{steelblue}{z_\text{mix}}$ is the depth of the mixed layer in $\mathrm{m}$
 
 
-### Respiration Rate
+$\textcolor{steelblue}{z_\text{euph}}$ is calculated as
+
+$$
+\textcolor{steelblue}{z_\text{euph}} = \log(\frac{\textcolor{steelblue}{I_0}}{\textcolor{saddlebrown}{I_\text{min}}})
+$$
+, where $\textcolor{saddlebrown}{I_\text{min}}$ is a parameter defining the light intensity at the base of the euphotic zone: 0.0015 $\mathrm{g~cal~cm^{−2}~min^{−1}}$
+
+
+## Respiration Rate
 
 The biomass-specific respiration rate $R$ is calculated as
 
 $$
-R = \textcolor{#B3541E}{R_0}~\mathrm{e}^{\textcolor{#B3541E}{r}~\textcolor{#2B5F9E}{\text{temp}}}
+R = \textcolor{saddlebrown}{R_0}~\mathrm{e}^{\textcolor{saddlebrown}{r}~\textcolor{steelblue}{\text{temp}}}
 $$
 
 **Parameters:**
 
-- $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 ◦C*, in $\mathrm{d^{-1}}$
-- $\textcolor{#B3541E}{r}$: 0.069 $\text{°C}^{-1}$ *Temperature dependency of respiration rate*
+- $\textcolor{saddlebrown}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 ◦C*, in $\mathrm{d^{-1}}$
+- $\textcolor{saddlebrown}{r}$: 0.069 $\text{°C}^{-1}$ *Temperature dependency of respiration rate*
 
-$\textcolor{#B3541E}{r}$ is equal $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
+$\textcolor{saddlebrown}{r}$ is equal $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
 
 **Forcing Variables:**
 
-- $\textcolor{#2B5F9E}{\text{temp}}$: *Surface (?) seawater temperature* in $\textrm{°C}$
+- $\textcolor{steelblue}{\text{temp}}$: *Surface (?) seawater temperature* in $\textrm{°C}$
 
 
-### Grazing Rate
+## Grazing Rate
 
 The biomass-specific grazing rate $G$ is calculated as
 
 $$
-G = \textcolor{#B3541E}{g}~\textcolor{#2B5F9E}{zoo_{\text{bm}}}
+G = \textcolor{saddlebrown}{g}~\textcolor{steelblue}{zoo_{\text{bm}}}
 $$
 
 
 **Parameters:**
 
-- $\textcolor{#B3541E}{g}$: 0.0075 $\mathrm{\frac{d^{-1}}{gC~m^{-2}}}$ *Clearance rate of grazers*
+- $\textcolor{saddlebrown}{g}$: 0.0075 $\mathrm{\frac{d^{-1}}{gC~m^{-2}}}$ *Clearance rate of grazers*
 
 
 **Forcing Variables:**
 
-- $\textcolor{#2B5F9E}{zoo_{\text{bm}}}$: *Biomass of zooplankton* in $\mathrm{gC~m^{-2}}$ (?)
+- $\textcolor{steelblue}{zoo_{\text{bm}}}$: *Biomass of zooplankton* in $\mathrm{gC~m^{-2}}$ (?)
 
 
 
@@ -102,7 +99,7 @@ $$
 ## Model in R
 
 
-## Setup
+Setup
 
 Load packages
 
