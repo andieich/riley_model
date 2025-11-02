@@ -6,6 +6,7 @@ format:
       theme: flatly
       table-of-contents: true
       toc-location: left
+      embed-resources: true
 ---
 
 ## Model equations
@@ -103,7 +104,7 @@ $$
 ## Model in R
 
 
-## Setup
+Setup
 
 Load packages
 
