@@ -6,7 +6,6 @@ format:
       theme: flatly
       table-of-contents: true
       toc-location: left
-      embed-resources: true
 ---
 
 ## Model equations
@@ -18,7 +17,7 @@ $$
 \frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G)~P
 $$
 
-, where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthisis in euphotic zone, and $G$ the grazing rate.
+, where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthesis in euphotic zone, and $G$ the grazing rate.
 
 
 ### Photosynthesis Rate
@@ -39,7 +38,7 @@ Parameters are shown in [red]{style="color:#B3541E"} and forcing variables in [b
 **Forcing variables:**
 
 - $\textcolor{#2B5F9E}{I_0}$: *Light at seasurface* in $\mathrm{\mu E~m^{-2}~s^{-1}}$
-- $\textcolor{#2B5F9E}{k}$: *Light attenuation in the euphotic zone*$\mathrm{m^{-1}}$
+- $\textcolor{#2B5F9E}{k}$: *Light attenuation in the euphotic zone* in $\mathrm{m^{-1}}$
 - $\textcolor{#2B5F9E}{L_\text{N}}$: *Limiting effects of turbulence*, unitless
 - $\textcolor{#2B5F9E}{L_\text{V}}$: *Limiting effects of nutrients*, unitless
 - $\textcolor{#2B5F9E}{z_\text{euph}}$: *Depth of the euphotic zone* in $\mathrm{m}$
@@ -70,7 +69,7 @@ $$
 
 **Parameters:**
 
-- $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 ◦C*, in $\mathrm{d^{-1}}$
+- $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 °C*, in $\mathrm{d^{-1}}$
 - $\textcolor{#B3541E}{r}$: 0.069 $\text{°C}^{-1}$ *Temperature dependency of respiration rate*
 
 $\textcolor{#B3541E}{r}$ is equal $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
