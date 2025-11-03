@@ -17,7 +17,7 @@ $$
 \frac{\mathrm{d} P}{\mathrm{d} t } = (\overline{P_h} - R - G)~P
 $$
 
-, where $P$ is the Phytoplankton biomass, $\overline{P_h}$ the average photosynthesis in euphotic zone, and $G$ the grazing rate.
+, where $P$ is the phytoplankton biomass, $\overline{P_h}$ is the average photosynthesis in euphotic zone, and $G$ is the grazing rate.
 
 
 ### Photosynthesis Rate
@@ -32,15 +32,15 @@ Parameters are shown in [red]{style="color:#B3541E"} and forcing variables in [b
 
 **Parameters:**
 
-- $\textcolor{#B3541E}{p}$ = 2.5 $\mathrm{\frac{gC~gC^{-1}~d^{-1}}{g~cal~cm^{-2}~min^{-1}}}$ *Photosynthetic rate per unit irradiance*
+- $\textcolor{#B3541E}{p}$ = 2.5 $\mathrm{gC~(gC)^{-1}~d^{-1}(g~cal~cm^{-2}~min^{-1}})^{-1}$ *Photosynthetic rate per unit irradiance*
 
 
 **Forcing variables:**
 
-- $\textcolor{#2B5F9E}{I_0}$: *Light at seasurface* in $\mathrm{\mu E~m^{-2}~s^{-1}}$
+- $\textcolor{#2B5F9E}{I_0}$: *Light intensity at sea surface* in $\mathrm{\mu E~m^{-2}~s^{-1}}$
 - $\textcolor{#2B5F9E}{k}$: *Light attenuation in the euphotic zone* in $\mathrm{m^{-1}}$
-- $\textcolor{#2B5F9E}{L_\text{N}}$: *Limiting effects of turbulence*, unitless
-- $\textcolor{#2B5F9E}{L_\text{V}}$: *Limiting effects of nutrients*, unitless
+- $\textcolor{#2B5F9E}{L_\text{N}}$: *Limiting effects due to nutrients*, unitless
+- $\textcolor{#2B5F9E}{L_\text{V}}$: *Limiting effects due to turbulence*, unitless
 - $\textcolor{#2B5F9E}{z_\text{euph}}$: *Depth of the euphotic zone* in $\mathrm{m}$
 
 $\textcolor{#2B5F9E}{L_\text{V}}$ is calculated as
@@ -54,9 +54,10 @@ $$
 $\textcolor{#2B5F9E}{z_\text{euph}}$ is calculated as
 
 $$
-\textcolor{#2B5F9E}{z_\text{euph}} = \log(\frac{\textcolor{#2B5F9E}{I_0}}{\textcolor{#B3541E}{I_\text{min}}})
+\textcolor{#2B5F9E}{z_\text{euph}} = \frac{\log(\frac{\textcolor{#2B5F9E}{I_0}}{\textcolor{#B3541E}{I_\text{min}}})}{\textcolor{#2B5F9E}{k}}
 $$
 , where $\textcolor{#B3541E}{I_\text{min}}$ is a parameter defining the light intensity at the base of the euphotic zone: 0.0015 $\mathrm{g~cal~cm^{−2}~min^{−1}}$
+
 
 
 ### Respiration Rate
@@ -72,11 +73,11 @@ $$
 - $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 °C*, in $\mathrm{d^{-1}}$
 - $\textcolor{#B3541E}{r}$: 0.069 $\text{°C}^{-1}$ *Temperature dependency of respiration rate*
 
-$\textcolor{#B3541E}{r}$ is equal $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
+$\textcolor{#B3541E}{r}$, corresponds to $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
 
 **Forcing Variables:**
 
-- $\textcolor{#2B5F9E}{\text{temp}}$: *Surface (?) seawater temperature* in $\textrm{°C}$
+- $\textcolor{#2B5F9E}{\text{temp}}$: *Sea-surface (?) temperature* in $\textrm{°C}$
 
 
 ### Grazing Rate
@@ -90,12 +91,12 @@ $$
 
 **Parameters:**
 
-- $\textcolor{#B3541E}{g}$: 0.0075 $\mathrm{\frac{d^{-1}}{gC~m^{-2}}}$ *Clearance rate of grazers*
+- $\textcolor{#B3541E}{g}$: 0.0075 $\mathrm{d^{-1}(gC~m^{-2}})^{-1}$ *Clearance rate of grazers*
 
 
 **Forcing Variables:**
 
-- $\textcolor{#2B5F9E}{zoo_{\text{bm}}}$: *Biomass of zooplankton* in $\mathrm{gC~m^{-2}}$ (?)
+- $\textcolor{#2B5F9E}{zoo_{\text{bm}}}$: *Zooplankton biomass* in $\mathrm{gC~m^{-2}}$ (?)
 
 
 
@@ -145,7 +146,7 @@ parameters <- c(
 )
 ```
 
-Define first model version. Use `approx()` to interpolate forcing data for each time point. For now, use `rule = 2` so that for time points outside of the period in forcing data values are returned.
+Define first model version. Use `approx()` to interpolate forcing data for each time point. For now, use `rule = 2` so that, outside the forcing-data range, boundary values are returned.
 
 ```{r}
 m_riley <- function(time, state, parameters, forcing_tbl) {
@@ -201,7 +202,7 @@ Define initial conditions
 state <- c(Phyto_bm = 3.377)
 ```
 
-Time period to be integrated. Use 15 days because starting value is one time step (originally 15 days) before start of model.
+Time period to be integrated. Use -15 days because starting value is one time step (originally 15 days) before start of model.
 
 > `approx()` will use the 1st forcing data point for -15 days. See below for an alternative. Use interval of 1 day instead of 15 days.
 
@@ -314,7 +315,7 @@ plot_rates
 
 As seen in @fig-rates_m1, some predictions are quite 'jaggy'. This is probably due to the linear approximations used for the forcing variables. Additionally, using the next value for timepoints outside of the range of the forcing data set (start = -15 days, end = 365 days) is not ideal.
 
-As an alternative, use "cyclic" GAMs. Cyclic means here, that the first values are considered when fitting the last within a period of 365 days.
+As an alternative, use “cyclic” GAMs, meaning the first values are considered when fitting the end of the 365-day period.
 
 Although GAMs are fitted only once outside of the model function, the prediction step takes much more time than `approx()`.
 
@@ -573,7 +574,7 @@ ggplot(dat_interp_forc, aes(x = days, y = value)) +
 
 ## Calibration
 
-To improve fit towards end of simulation, copy first observed data point (day 8) to day 365.
+To improve the fit toward the end of the simulation, copy the first observed data point (day 8) to day 365.
 
 ```{r}
 #| code-fold: true
@@ -584,7 +585,7 @@ dat_obs <- dat_obs %>%
 
 This step takes some time, use the faster model with `approx()`. Only integrate at -15 days (initial conditions) and the timpoints in observed data. It still takes a long time to fit, so save output after first run. 
 
-Lower value explored is 0.5 \* baseline parameter value and upper value 2 \* baseline value.
+The lower bound is 0.5 × the baseline parameter value, and the upper bound is 2 × the baseline value.
 
 ```{r}
 #| eval: false
@@ -770,12 +771,12 @@ write_rds(res_unif, here("output", "global_sen_res_unif.rds"))
 #| warning: false
 #| message: false
 
-#read simulations
+# read simulations
 res_unif <- readRDS(here("output", "global_sen_res_unif.rds"))
 
-#plot
+# plot
 res_unif %>%
-  #make long
+  # make long
   pivot_longer(
     mean:time_max,
     values_to = "metric_value",
@@ -853,4 +854,4 @@ res_norm %>%
   labs(y = NULL, x = "Parameter Value")
 ```
 
-In @fig-global_sensitivity_lhs and @fig-global_sensitivity_norm, the timing is mainly in 3 days, independed on the other values, which correlate to the three blooms that seem to depend only on the forcing variables.
+In @fig-global_sensitivity_lhs and @fig-global_sensitivity_norm, the timing clusters within ~3 days, largely independent of the parameter values, consistent with three blooms that appear to be driven primarily by the forcing variables.
