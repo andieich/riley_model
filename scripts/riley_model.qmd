@@ -70,7 +70,7 @@ $$
 
 **Parameters:**
 
-- $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 °C*, in $\mathrm{d^{-1}}$
+- $\textcolor{#B3541E}{R_0}$: 0.0175 $\text{d}^{-1}$ *Respiration rate of phytoplankton at 0 °C*
 - $\textcolor{#B3541E}{r}$: 0.069 $\text{°C}^{-1}$ *Temperature dependency of respiration rate*
 
 $\textcolor{#B3541E}{r}$, corresponds to $Q_{10} = 2$, i.e. doubling of rate for 10 °C increase in temperature: $\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2$
