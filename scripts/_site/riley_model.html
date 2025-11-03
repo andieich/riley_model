@@ -242,7 +242,7 @@ R = \textcolor{#B3541E}{R_0}~\mathrm{e}^{\textcolor{#B3541E}{r}~\textcolor{#2B5F
 \]</span></p>
 <p><strong>Parameters:</strong></p>
 <ul>
-<li><span class="math inline">\(\textcolor{#B3541E}{R_0}\)</span>: 0.0175 <span class="math inline">\(\text{d}^{-1}\)</span> <em>Respiration rate of phytoplankton at 0 °C</em>, in <span class="math inline">\(\mathrm{d^{-1}}\)</span></li>
+<li><span class="math inline">\(\textcolor{#B3541E}{R_0}\)</span>: 0.0175 <span class="math inline">\(\text{d}^{-1}\)</span> <em>Respiration rate of phytoplankton at 0 °C</em></li>
 <li><span class="math inline">\(\textcolor{#B3541E}{r}\)</span>: 0.069 <span class="math inline">\(\text{°C}^{-1}\)</span> <em>Temperature dependency of respiration rate</em></li>
 </ul>
 <p><span class="math inline">\(\textcolor{#B3541E}{r}\)</span>, corresponds to <span class="math inline">\(Q_{10} = 2\)</span>, i.e.&nbsp;doubling of rate for 10 °C increase in temperature: <span class="math inline">\(\mathrm{e}^{10 \text{°C}~0.069~\textrm{°C}^{-1}}\approx2\)</span></p>
@@ -1124,7 +1124,7 @@ Figure&nbsp;8: Global sensitivity normal distribution
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/andieich\.github\.io\/riley_model\/");
+        var filterRegex = new RegExp('/' + window.location.host + '/');
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
