@@ -713,10 +713,161 @@ source(here("scripts", "plot_local_sensitivity.R"))
 
 ```
 
+To better understand the impact of `p` and `g`, plot rates with `p = 3` and `g = 006` (other parameter as baseline).
+
+```{r}
+#| code-fold: true
+#| label: fig-local_p_g_orig
+#| fig-cap: "Local sensitivity analysis, impact of p and g"
+#| fig-width: 10
+
+# copy old parameters
+parameters_p_max <- parameters
+
+# assign new g (0.006)
+parameters_p_max["p"] <- parameters_p_max["p"] * 1.2
+
+plot_p_max <- ode(
+  y = state,
+  times = times,
+  func = m_riley,
+  parms = parameters_p_max,
+  forcing_tbl = dat_forc
+) %>%
+  as.data.frame() %>%
+  rename_with(~ str_remove(.x, "\\.1$")) %>% #for some reason, ".1" is added to some column names
+  filter(time > 0) %>%
+  ggplot(aes(x = time)) +
+  geom_ribbon(
+    aes(
+      ymin = photos - resp,
+      ymax = photos,
+      fill = "Respiration"
+    )
+  ) +
+  # green: respiration→net layer
+  geom_ribbon(
+    aes(
+      ymin = photos - resp - graz,
+      ymax = photos - resp,
+      fill = "Grazing"
+    )
+  ) +
+  scale_fill_manual(
+    name = NULL,
+    values = c(
+      "Respiration" = "#5095d4",
+      "Grazing" = "#125a52"
+    )
+  ) +
+  geom_line(
+    aes(y = photos - resp - graz, linetype = "Net Production"),
+    linewidth = .7
+  ) +
+  geom_line(
+    aes(y = photos, linetype = "Gross Production"),
+    linewidth = .7
+  ) +
+  geom_hline(yintercept = 0, linetype = "11", col = "grey30") +
+  scale_linetype_manual(
+    name = NULL,
+    values = c("Net Production" = "solid", "Gross Production" = "11")
+  ) +
+  labs(
+    x = "Days",
+    y = expression(
+      "Specific rate (d"^{
+        -1
+      } *
+        ")"
+    )
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  theme_light() +
+  theme(legend.position = "bottom")
+
+
+# copy old parameters
+parameters_g_min <- parameters
+
+# assign new g (0.006)
+parameters_g_min["g"] <- parameters_g_min["g"] * 0.8
+
+plot_g_min <- ode(
+  y = state,
+  times = times,
+  func = m_riley,
+  parms = parameters_g_min,
+  forcing_tbl = dat_forc
+) %>%
+  as.data.frame() %>%
+  rename_with(~ str_remove(.x, "\\.1$")) %>% #for some reason, ".1" is added to some column names
+  filter(time > 0) %>%
+  ggplot(aes(x = time)) +
+  geom_ribbon(
+    aes(
+      ymin = photos - resp,
+      ymax = photos,
+      fill = "Respiration"
+    )
+  ) +
+  # green: respiration→net layer
+  geom_ribbon(
+    aes(
+      ymin = photos - resp - graz,
+      ymax = photos - resp,
+      fill = "Grazing"
+    )
+  ) +
+  scale_fill_manual(
+    name = NULL,
+    values = c(
+      "Respiration" = "#5095d4",
+      "Grazing" = "#125a52"
+    )
+  ) +
+  geom_line(
+    aes(y = photos - resp - graz, linetype = "Net Production"),
+    linewidth = .7
+  ) +
+  geom_line(
+    aes(y = photos, linetype = "Gross Production"),
+    linewidth = .7
+  ) +
+  geom_hline(yintercept = 0, linetype = "11", col = "grey30") +
+  scale_linetype_manual(
+    name = NULL,
+    values = c("Net Production" = "solid", "Gross Production" = "11")
+  ) +
+  labs(
+    x = "Days",
+    y = expression(
+      "Specific rate (d"^{
+        -1
+      } *
+        ")"
+    )
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  theme_light() +
+  theme(legend.position = "bottom")
+
+((plot_p_max + ylim(-0.04, .17)) +
+  ggtitle("p = 3")) +
+  ((plot_g_min + ylim(-0.04, .17)) +
+    ggtitle("g = 0.006")) +
+  (plot_rates + ylim(-0.04, .17) + ggtitle("Baseline")) +
+  plot_layout(guides = "collect", axes = 'collect', axis_titles = "collect") &
+  theme(legend.position = 'bottom')
+```
+
+@fig-local_p_g_orig shows that small changes in the rates have high impact on biomass, probably due to exponential growth.
+
+
 ### Global Sensitivity analysis
-
+  
 Get [custom function](sim_global_sensitivity.R){target="_blank"} to run simulations with different parameter combinations
-
+  
 ```{r}
 source(here("scripts", "sim_global_sensitivity.R"))
 ```
