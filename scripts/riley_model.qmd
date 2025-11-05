@@ -713,7 +713,7 @@ source(here("scripts", "plot_local_sensitivity.R"))
 
 ```
 
-To better understand the impact of `p` and `g`, plot rates with `p = 3` and `g = 006` (other parameter as baseline).
+To better understand the impact of `p` and `g`, plot rates with `p = 3` and `g = 0.006` (other parameter as baseline).
 
 ```{r}
 #| code-fold: true
